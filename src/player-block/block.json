@@ -1,0 +1,28 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "prc-spoken-article/player",
+	"version": "0.1.0",
+	"title": "Spoken Article",
+	"category": "media",
+	"description": "Audio narration of the article content using AI-generated speech",
+	"usesContext": ["postId"],
+	"supports": {
+		"anchor": true,
+		"html": false,
+		"multiple": false,
+		"reusable": false,
+		"spacing": {
+			"margin": ["top", "bottom"],
+			"padding": true,
+			"__experimentalDefaultControls": {
+				"padding": true
+			}
+		}
+	},
+	"textdomain": "prc-spoken-article",
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./index.css",
+	"style": "file:./style-index.css",
+	"viewModule": "file:./view.js"
+}

@@ -1,0 +1,21 @@
+{
+	"name": "@prc/spoken-article",
+	"version": "1.0.0",
+	"description": "Audio player block for AI-generated spoken article narration",
+	"license": "GPL-2.0-or-later",
+	"scripts": {
+		"build": "wp-scripts build --source-path=./src/player-block --output-path=./build/player-block --webpack-copy-php --experimental-modules",
+		"build:sidebar": "wp-scripts build --source-path=./src/sidebar --output-path=./build/sidebar --webpack-copy-php",
+		"build:all": "npm run build && npm run build:sidebar",
+		"start": "wp-scripts start --source-path=./src/player-block --output-path=./build/player-block --webpack-copy-php --experimental-modules",
+		"start:sidebar": "wp-scripts start --source-path=./src/sidebar --output-path=./build/sidebar --webpack-copy-php"
+	},
+	"devDependencies": {
+		"@prc/components": "*",
+		"@prc/icons": "*",
+		"@wordpress/scripts": "^31.6.0"
+	},
+	"dependencies": {
+		"@wordpress/icons": "^11.8.0"
+	}
+}
