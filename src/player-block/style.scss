@@ -1,38 +1,4 @@
 .wp-block-prc-spoken-article-player {
-	// Inline trigger
-	.spoken-article-trigger {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		border: none;
-		background: transparent;
-		color: #333;
-		cursor: pointer;
-		font-size: 14px;
-		font-weight: 500;
-		line-height: 1.4;
-		transition: color 0.15s;
-
-		&:hover,
-		&:focus-visible {
-			color: #000;
-		}
-
-		&:focus-visible {
-			outline: 2px solid #0073aa;
-			outline-offset: 2px;
-		}
-
-		&__icon {
-			fill: currentColor;
-			flex-shrink: 0;
-		}
-
-		&__duration {
-			white-space: nowrap;
-		}
-	}
-
 	// Dialog reset
 	.spoken-article-dialog {
 		position: fixed;
@@ -66,9 +32,53 @@
 
 		&__header {
 			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		&__resume-btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 6px;
+			width: 100%;
+			padding: 10px 16px;
+			border: none;
+			border-radius: 6px;
+			background: #fff;
+			color: #1a1a1a;
+			font-size: 14px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: background 0.15s;
+			align-self: flex-start;
+
+			&:hover {
+				background: #e0e0e0;
+			}
+
+			&:focus-visible {
+				outline: 2px solid #fff;
+				outline-offset: 2px;
+			}
+
+			svg {
+				fill: currentColor;
+				width: 16px;
+				height: 16px;
+			}
+
+			&[hidden] {
+				display: none;
+			}
+		}
+
+		&__header-row {
+			display: flex;
 			align-items: center;
 			justify-content: space-between;
 			gap: 12px;
+			width: 100%;
 		}
 
 		&__title-row {
@@ -256,6 +266,23 @@
 			color: #777;
 			text-align: center;
 			margin: 8px 0 0;
+		}
+
+		&__back-link {
+			display: block;
+			font-size: 12px;
+			color: #999;
+			text-align: center;
+			margin-top: 8px;
+			text-decoration: underline;
+
+			&:hover {
+				color: #fff;
+			}
+
+			&[hidden] {
+				display: none;
+			}
 		}
 
 		// Expanded state modifier

@@ -1,0 +1,124 @@
+<?php
+/**
+ * Player Trigger Block
+ *
+ * @package PRC\Platform\Blocks
+ */
+
+namespace PRC\Platform\Spoken_Article;
+
+use PRC\Platform\Spoken_Article\Post_Meta;
+use PRC\Platform\Spoken_Article\Rest_API;
+use WP_Block;
+
+/**
+ * Renders the inline trigger button that opens the spoken article player.
+ * Only outputs markup when the current post has spoken article audio.
+ */
+class Player_Trigger_Block {
+
+	/**
+	 * Block name
+	 *
+	 * @var string
+	 */
+	public static $block_name = 'prc-spoken-article/player-trigger';
+
+	/**
+	 * Loader instance
+	 *
+	 * @var \PRC\Platform\Spoken_Article\Loader
+	 */
+	protected $loader;
+
+	/**
+	 * Constructor
+	 *
+	 * @param \PRC\Platform\Spoken_Article\Loader $loader The loader instance.
+	 */
+	public function __construct( $loader ) {
+		$this->loader = $loader;
+		$this->loader->add_action( 'init', $this, 'register_block' );
+	}
+
+	/**
+	 * Register the block.
+	 *
+	 * @hook init
+	 */
+	public function register_block() {
+		register_block_type_from_metadata(
+			PRC_SPOKEN_ARTICLE_BLOCKS_DIR . '/player-trigger-block',
+			array(
+				'render_callback' => array( $this, 'render_block_callback' ),
+			)
+		);
+	}
+
+	/**
+	 * Render callback for the trigger block.
+	 *
+	 * @param array    $attributes Block attributes.
+	 * @param string   $content Block content.
+	 * @param WP_Block $block Block instance.
+	 * @return string Rendered block HTML.
+	 */
+	public function render_block_callback( $attributes, $content, $block ) {
+		// @TODO: Right now this is in BETA mode, so we only want to show the block to logged in users.
+		if ( ! is_user_logged_in() ) {
+			return '';
+		}
+
+		if ( is_admin() ) {
+			return '';
+		}
+
+		$post_id = $block->context['postId'] ?? get_the_ID();
+		if ( ! $post_id ) {
+			return '';
+		}
+
+		$spoken = get_post_meta( $post_id, Post_Meta::META_KEY, true );
+		if ( empty( $spoken ) || empty( $spoken['attachment_id'] ) || empty( $spoken['audio_url'] ) ) {
+			return '';
+		}
+
+		$audio_url  = $spoken['audio_url'];
+		$duration   = $spoken['duration'] ?? '';
+		$post_title = get_the_title( $post_id );
+		$post_url   = get_permalink( $post_id );
+
+		$block_wrapper_attrs = get_block_wrapper_attributes(
+			array(
+				'data-wp-interactive' => wp_json_encode( array( 'namespace' => 'prc-spoken-article/player' ) ),
+				'data-wp-context'     => wp_json_encode(
+					array(
+						'audioUrl'          => esc_url( $audio_url ),
+						'duration'          => esc_attr( $duration ),
+						'postTitle'         => esc_attr( $post_title ),
+						'postUrl'           => esc_url( $post_url ),
+						'postId'            => $post_id,
+						'playCountEndpoint' => esc_url( rest_url( Rest_API::NAMESPACE . '/play-count/' . $post_id ) ),
+					)
+				),
+			)
+		);
+
+		ob_start();
+		?>
+		<div <?php echo $block_wrapper_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
+			<button
+				class="spoken-article-trigger"
+				data-wp-on--click="actions.requestPlay"
+				aria-label="<?php esc_attr_e( 'Listen to this article', 'prc-spoken-article' ); ?>"
+			>
+				<?php echo \PRC\Platform\Icons\render( 'solid', 'headphones' ); ?>
+				<span class="spoken-article-trigger__duration">
+					<?php echo esc_html( $duration ); ?>
+				</span>
+			</button>
+		</div>
+		<?php
+		return ob_get_clean();
+	}
+}

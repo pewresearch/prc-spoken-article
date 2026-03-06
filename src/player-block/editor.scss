@@ -1,24 +1,17 @@
-.spoken-article-editor {
-	&__preview {
-		display: inline-flex;
+.spoken-article-player-editor {
+	&__placeholder {
+		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 4px 12px;
-		font-size: 14px;
-		font-weight: 500;
-		color: #333;
+		justify-content: center;
+		padding: 16px;
+		background: #f0f0f0;
+		border: 1px dashed #ccc;
+		border-radius: 4px;
 	}
 
-	&__icon {
-		fill: currentColor;
-		flex-shrink: 0;
-	}
-
-	&__duration {
-		white-space: nowrap;
-
-		&--placeholder {
-			opacity: 0.4;
-		}
+	&__label {
+		font-size: 13px;
+		color: #757575;
+		font-style: italic;
 	}
 }

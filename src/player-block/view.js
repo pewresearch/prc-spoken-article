@@ -7,6 +7,13 @@ const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const STORAGE_KEY = 'prc-spoken-article-playback';
 const STALE_MS = 24 * 60 * 60 * 1000;
 
+function isIOS() {
+	return (
+		/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+		(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+	);
+}
+
 let restored = false;
 let lastSaveTime = 0;
 let blockRoot = null;
@@ -21,14 +28,12 @@ function formatTime(seconds) {
 	return `${m}:${String(sec).padStart(2, '0')}`;
 }
 
-function getAudio(ref) {
-	const root = ref.closest('[data-wp-interactive]');
-	return root?.querySelector('[data-wp-ref="audioElement"]');
+function getAudio() {
+	return blockRoot?.querySelector('[data-wp-ref="audioElement"]');
 }
 
-function getDialog(ref) {
-	const root = ref.closest('[data-wp-interactive]');
-	return root?.querySelector('[data-wp-ref="playerDialog"]');
+function getDialog() {
+	return blockRoot?.querySelector('[data-wp-ref="playerDialog"]');
 }
 
 function saveState(ctx) {
@@ -39,9 +44,11 @@ function saveState(ctx) {
 				audioUrl: ctx.audioUrl,
 				postTitle: ctx.postTitle,
 				postId: ctx.postId,
+				postUrl: ctx.postUrl,
 				currentTime: ctx.currentTime,
 				playbackRate: ctx.playbackRate,
 				isPlaying: ctx.isPlaying,
+				isExpanded: ctx.isExpanded,
 				duration: ctx.duration,
 				playCountEndpoint: ctx.playCountEndpoint,
 				hasTrackedPlay: ctx.hasTrackedPlay,
@@ -109,28 +116,23 @@ function registerMediaSessionHandlers() {
 		return;
 	}
 
-	const getPlayerAudio = () =>
-		blockRoot.querySelector('[data-wp-ref="audioElement"]');
-	const getPlayerDialog = () =>
-		blockRoot.querySelector('[data-wp-ref="playerDialog"]');
-
 	navigator.mediaSession.setActionHandler('play', () => {
-		const audio = getPlayerAudio();
+		const audio = getAudio();
 		if (audio) {
 			audio.play();
 		}
 	});
 
 	navigator.mediaSession.setActionHandler('pause', () => {
-		const audio = getPlayerAudio();
+		const audio = getAudio();
 		if (audio) {
 			audio.pause();
 		}
 	});
 
 	navigator.mediaSession.setActionHandler('stop', () => {
-		const audio = getPlayerAudio();
-		const dialog = getPlayerDialog();
+		const audio = getAudio();
+		const dialog = getDialog();
 		if (audio) {
 			audio.pause();
 			audio.currentTime = 0;
@@ -142,14 +144,14 @@ function registerMediaSessionHandlers() {
 	});
 
 	navigator.mediaSession.setActionHandler('seekbackward', () => {
-		const audio = getPlayerAudio();
+		const audio = getAudio();
 		if (audio) {
 			audio.currentTime = Math.max(0, audio.currentTime - 15);
 		}
 	});
 
 	navigator.mediaSession.setActionHandler('seekforward', () => {
-		const audio = getPlayerAudio();
+		const audio = getAudio();
 		if (audio) {
 			audio.currentTime = Math.min(
 				audio.duration || 0,
@@ -159,15 +161,98 @@ function registerMediaSessionHandlers() {
 	});
 
 	navigator.mediaSession.setActionHandler('seekto', (details) => {
-		const audio = getPlayerAudio();
+		const audio = getAudio();
 		if (audio && details.seekTime != null) {
 			audio.currentTime = details.seekTime;
 		}
 	});
 }
 
-store('prc-spoken-article/player', {
+/**
+ * Loads audio into the player and starts playback.
+ * Shared by both onPendingAudio (trigger click) and onInit (session restore).
+ */
+function loadAndPlay(ctx, audioUrl, savedTime = 0, shouldPlay = true) {
+	const audio = getAudio();
+	const dialog = getDialog();
+
+	if (!audio) {
+		return;
+	}
+
+	const onReady = () => {
+		audio.removeEventListener('loadedmetadata', onReady);
+		audio.removeEventListener('error', onError);
+
+		if (isFinite(audio.duration)) {
+			ctx.totalDuration = audio.duration;
+		}
+
+		if (savedTime > 0) {
+			audio.currentTime = Math.min(savedTime, audio.duration || 0);
+			ctx.currentTime = audio.currentTime;
+		}
+
+		audio.playbackRate = ctx.playbackRate;
+
+		if (dialog && !dialog.open) {
+			dialog.show();
+		}
+		ctx.isPlayerOpen = true;
+
+		updateMediaSessionMetadata(ctx);
+
+		if (shouldPlay) {
+			audio.play().then(
+				() => {
+					ctx.isPlaying = true;
+					saveState(ctx);
+				},
+				() => {
+					ctx.isPlaying = false;
+				}
+			);
+		}
+	};
+
+	const onError = () => {
+		audio.removeEventListener('loadedmetadata', onReady);
+		audio.removeEventListener('error', onError);
+		clearState();
+	};
+
+	const source = audio.querySelector('source');
+	const currentSrc = source?.getAttribute('src') || '';
+	const sameSource = currentSrc === audioUrl;
+
+	if (sameSource && audio.readyState >= 1) {
+		onReady();
+	} else {
+		audio.addEventListener('loadedmetadata', onReady);
+		audio.addEventListener('error', onError);
+		if (!sameSource) {
+			if (source) {
+				source.src = audioUrl;
+			}
+			audio.load();
+		}
+	}
+}
+
+const { state } = store('prc-spoken-article/player', {
 	state: {
+		pendingAudio: null,
+
+		get showIOSResumePrompt() {
+			const ctx = getContext();
+			return (
+				isIOS() &&
+				ctx.hasAudio &&
+				!ctx.isPlaying &&
+				!ctx.isExpanded
+			);
+		},
+
 		get progressPercent() {
 			const ctx = getContext();
 			if (!ctx.totalDuration) {
@@ -193,21 +278,26 @@ store('prc-spoken-article/player', {
 		},
 	},
 	actions: {
-		openPlayer() {
-			const context = getContext();
-			const { ref } = getElement();
-			const dialog = getDialog(ref);
-			if (dialog && !dialog.open) {
-				dialog.show();
-			}
-			context.isPlayerOpen = true;
+		/**
+		 * Called by the trigger block's data-wp-on--click.
+		 * Reads the trigger's context and writes to state.pendingAudio.
+		 */
+		requestPlay() {
+			const ctx = getContext();
+			state.pendingAudio = {
+				audioUrl: ctx.audioUrl,
+				postTitle: ctx.postTitle,
+				postUrl: ctx.postUrl,
+				postId: ctx.postId,
+				duration: ctx.duration,
+				playCountEndpoint: ctx.playCountEndpoint,
+			};
 		},
 
 		closePlayer() {
 			const context = getContext();
-			const { ref } = getElement();
-			const dialog = getDialog(ref);
-			const audio = getAudio(ref);
+			const audio = getAudio();
+			const dialog = getDialog();
 
 			if (audio) {
 				audio.pause();
@@ -232,13 +322,13 @@ store('prc-spoken-article/player', {
 		toggleExpand() {
 			const context = getContext();
 			context.isExpanded = !context.isExpanded;
+			saveState(context);
 		},
 
 		togglePlay() {
 			const context = getContext();
-			const { ref } = getElement();
-			const audio = getAudio(ref);
-			const dialog = getDialog(ref);
+			const audio = getAudio();
+			const dialog = getDialog();
 
 			if (!audio) {
 				return;
@@ -283,10 +373,7 @@ store('prc-spoken-article/player', {
 
 		updateTime() {
 			const context = getContext();
-			const { ref } = getElement();
-			const audio = ref?.closest?.('[data-wp-interactive]')
-				? getAudio(ref)
-				: ref;
+			const audio = getAudio();
 
 			if (audio && isFinite(audio.currentTime)) {
 				context.currentTime = audio.currentTime;
@@ -302,10 +389,7 @@ store('prc-spoken-article/player', {
 
 		onLoadedMetadata() {
 			const context = getContext();
-			const { ref } = getElement();
-			const audio = ref?.closest?.('[data-wp-interactive]')
-				? getAudio(ref)
-				: ref;
+			const audio = getAudio();
 
 			if (audio && isFinite(audio.duration)) {
 				context.totalDuration = audio.duration;
@@ -322,7 +406,7 @@ store('prc-spoken-article/player', {
 		seek() {
 			const context = getContext();
 			const { ref } = getElement();
-			const audio = getAudio(ref);
+			const audio = getAudio();
 			if (!audio || !context.totalDuration) {
 				return;
 			}
@@ -333,8 +417,7 @@ store('prc-spoken-article/player', {
 
 		skipBack() {
 			const context = getContext();
-			const { ref } = getElement();
-			const audio = getAudio(ref);
+			const audio = getAudio();
 			if (!audio) {
 				return;
 			}
@@ -344,8 +427,7 @@ store('prc-spoken-article/player', {
 
 		skipForward() {
 			const context = getContext();
-			const { ref } = getElement();
-			const audio = getAudio(ref);
+			const audio = getAudio();
 			if (!audio) {
 				return;
 			}
@@ -358,8 +440,7 @@ store('prc-spoken-article/player', {
 
 		increaseSpeed() {
 			const context = getContext();
-			const { ref } = getElement();
-			const audio = getAudio(ref);
+			const audio = getAudio();
 			const idx = SPEEDS.indexOf(context.playbackRate);
 			if (idx < SPEEDS.length - 1) {
 				context.playbackRate = SPEEDS[idx + 1];
@@ -371,8 +452,7 @@ store('prc-spoken-article/player', {
 
 		decreaseSpeed() {
 			const context = getContext();
-			const { ref } = getElement();
-			const audio = getAudio(ref);
+			const audio = getAudio();
 			const idx = SPEEDS.indexOf(context.playbackRate);
 			if (idx > 0) {
 				context.playbackRate = SPEEDS[idx - 1];
@@ -400,74 +480,51 @@ store('prc-spoken-article/player', {
 				return;
 			}
 
-			const sameAudio = saved.audioUrl === ctx.audioUrl;
-			const wasPlaying = saved.isPlaying;
-			const savedTime = saved.currentTime || 0;
-
-			if (!sameAudio) {
-				ctx.audioUrl = saved.audioUrl;
-				ctx.postTitle = saved.postTitle || ctx.postTitle;
-				ctx.duration = saved.duration || ctx.duration;
-				ctx.postId = saved.postId || ctx.postId;
-				ctx.playCountEndpoint =
-					saved.playCountEndpoint || ctx.playCountEndpoint;
-			}
-
+			ctx.audioUrl = saved.audioUrl;
+			ctx.postTitle = saved.postTitle || '';
+			ctx.postUrl = saved.postUrl || '';
+			ctx.duration = saved.duration || '';
+			ctx.postId = saved.postId || 0;
+			ctx.playCountEndpoint = saved.playCountEndpoint || '';
 			ctx.playbackRate = saved.playbackRate || 1;
 			ctx.hasTrackedPlay = saved.hasTrackedPlay || false;
+			ctx.hasAudio = true;
 
-			const dialog = getDialog(ref);
-			const audio = getAudio(ref);
+			const wasExpanded = saved.isExpanded || false;
+			ctx.isExpanded = wasExpanded;
 
-			if (!audio) {
+			loadAndPlay(
+				ctx,
+				saved.audioUrl,
+				saved.currentTime || 0,
+				saved.isPlaying
+			);
+		},
+
+		/**
+		 * Reactive watcher on the player block root.
+		 * Fires whenever state.pendingAudio changes.
+		 */
+		onPendingAudio() {
+			const pending = state.pendingAudio;
+			if (!pending) {
 				return;
 			}
 
-			const onReady = () => {
-				audio.removeEventListener('loadedmetadata', onReady);
-				audio.removeEventListener('error', onError);
+			const ctx = getContext();
+			ctx.audioUrl = pending.audioUrl;
+			ctx.postTitle = pending.postTitle;
+			ctx.postUrl = pending.postUrl;
+			ctx.postId = pending.postId;
+			ctx.duration = pending.duration;
+			ctx.playCountEndpoint = pending.playCountEndpoint;
+			ctx.hasTrackedPlay = false;
+			ctx.hasAudio = true;
 
-				if (isFinite(audio.duration)) {
-					ctx.totalDuration = audio.duration;
-				}
-				audio.currentTime = Math.min(savedTime, audio.duration || 0);
-				ctx.currentTime = audio.currentTime;
-				audio.playbackRate = ctx.playbackRate;
+			// Clear the signal so it doesn't re-trigger.
+			state.pendingAudio = null;
 
-				if (dialog && !dialog.open) {
-					dialog.show();
-				}
-				ctx.isPlayerOpen = true;
-
-				updateMediaSessionMetadata(ctx);
-
-				if (wasPlaying) {
-					audio.play().then(
-						() => {
-							ctx.isPlaying = true;
-						},
-						() => {
-							ctx.isPlaying = false;
-						}
-					);
-				}
-			};
-
-			const onError = () => {
-				audio.removeEventListener('loadedmetadata', onReady);
-				audio.removeEventListener('error', onError);
-				clearState();
-			};
-
-			if (sameAudio && audio.readyState >= 1) {
-				onReady();
-			} else {
-				audio.addEventListener('loadedmetadata', onReady);
-				audio.addEventListener('error', onError);
-				if (!sameAudio) {
-					audio.load();
-				}
-			}
+			loadAndPlay(ctx, pending.audioUrl);
 		},
 	},
 });

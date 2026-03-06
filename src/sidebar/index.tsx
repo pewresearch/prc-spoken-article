@@ -4,6 +4,9 @@
 import { registerPlugin } from '@wordpress/plugins';
 import { PluginSidebar, PluginSidebarMoreMenuItem } from '@wordpress/editor';
 import { __ } from '@wordpress/i18n';
+import { useCommand } from '@wordpress/commands';
+import { useDispatch } from '@wordpress/data';
+import { store as editPostStore } from '@wordpress/edit-post';
 
 /**
  * Internal Dependencies
@@ -14,37 +17,48 @@ import { createGenerateSpokenArticleCallback } from './generate-spoken-article-c
 const PLUGIN_NAME = 'prc-spoken-article';
 const ABILITY_NAME = 'prc-spoken-article/generate';
 
+const headphonesIcon = (
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 24 24"
+		width="24"
+		height="24"
+	>
+		<path d="M12 3c-4.97 0-9 4.03-9 9v7c0 1.1.9 2 2 2h4v-8H5v-1c0-3.87 3.13-7 7-7s7 3.13 7 7v1h-4v8h4c1.1 0 2-.9 2-2v-7c0-4.97-4.03-9-9-9z" />
+	</svg>
+);
+
 function SpokenArticleSidebar() {
+	const { openGeneralSidebar } = useDispatch(editPostStore);
+
+	useCommand({
+		name: 'prc/generate-spoken-article',
+		label: __('Generate Spoken Article Audio', 'prc-spoken-article'),
+		icon: headphonesIcon,
+		category: 'action',
+		keywords: ['audio', 'spoken', 'article', 'tts', 'voice', 'generate'],
+		callback: ({ close }) => {
+			(window as any).__prcSpokenArticleStartGenerate = true;
+			openGeneralSidebar(`${PLUGIN_NAME}/${PLUGIN_NAME}`);
+			window.dispatchEvent(
+				new CustomEvent('prc-spoken-article:start-generate')
+			);
+			close();
+		},
+	});
+
 	return (
 		<>
 			<PluginSidebarMoreMenuItem
 				target={PLUGIN_NAME}
-				icon={
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						width="24"
-						height="24"
-					>
-						<path d="M12 3c-4.97 0-9 4.03-9 9v7c0 1.1.9 2 2 2h4v-8H5v-1c0-3.87 3.13-7 7-7s7 3.13 7 7v1h-4v8h4c1.1 0 2-.9 2-2v-7c0-4.97-4.03-9-9-9z" />
-					</svg>
-				}
+				icon={headphonesIcon}
 			>
 				{__('Spoken Article', 'prc-spoken-article')}
 			</PluginSidebarMoreMenuItem>
 			<PluginSidebar
 				name={PLUGIN_NAME}
 				title={__('Spoken Article', 'prc-spoken-article')}
-				icon={
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						width="24"
-						height="24"
-					>
-						<path d="M12 3c-4.97 0-9 4.03-9 9v7c0 1.1.9 2 2 2h4v-8H5v-1c0-3.87 3.13-7 7-7s7 3.13 7 7v1h-4v8h4c1.1 0 2-.9 2-2v-7c0-4.97-4.03-9-9-9z" />
-					</svg>
-				}
+				icon={headphonesIcon}
 			>
 				<SidebarPanel />
 			</PluginSidebar>

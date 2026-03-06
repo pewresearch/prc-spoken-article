@@ -48,12 +48,19 @@ class Bootstrap {
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-rest-api.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-schema.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-wp-admin.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-media-library.php';
 
-		$dev_mode        = 'local' === wp_get_environment_type();
-		$block_src       = $dev_mode ? 'src' : 'build';
-		$block_file_path = plugin_dir_path( __DIR__ ) . $block_src . '/player-block/class-player-block.php';
-		if ( file_exists( $block_file_path ) ) {
-			require_once $block_file_path;
+		$dev_mode  = 'local' === wp_get_environment_type();
+		$block_src = $dev_mode ? 'src' : 'build';
+
+		$player_block_path = plugin_dir_path( __DIR__ ) . $block_src . '/player-block/class-player-block.php';
+		if ( file_exists( $player_block_path ) ) {
+			require_once $player_block_path;
+		}
+
+		$trigger_block_path = plugin_dir_path( __DIR__ ) . $block_src . '/player-trigger-block/class-player-trigger-block.php';
+		if ( file_exists( $trigger_block_path ) ) {
+			require_once $trigger_block_path;
 		}
 	}
 
@@ -69,7 +76,9 @@ class Bootstrap {
 		new Rest_API( $this->get_loader() );
 		new Schema( $this->get_loader() );
 		new WP_Admin( $this->get_loader() );
+		new Media_Library( $this->get_loader() );
 		new Player_Block( $this->get_loader() );
+		new Player_Trigger_Block( $this->get_loader() );
 	}
 
 	/**

@@ -125,6 +125,16 @@ export async function generateAudioFromText(
 			media_details?: { length_formatted?: string; length?: number };
 		};
 
+		// Flag the attachment so it's hidden from the media library.
+		await fetch(`${mediaUrl}/${media.id}`, {
+			method: 'POST',
+			headers: {
+				'X-WP-Nonce': restNonce,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ meta: { isSpokenArticleAudio: true } }),
+		}).catch(() => {});
+
 		let duration = 'Unknown';
 		const details = media.media_details;
 		if (details?.length_formatted) {

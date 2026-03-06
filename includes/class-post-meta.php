@@ -86,6 +86,39 @@ class Post_Meta {
 					},
 				)
 			);
+
+			register_post_meta(
+				$post_type,
+				'spoken_article_transcript',
+				array(
+					'single'              => true,
+					'type'                => 'string',
+					'description'         => 'Draft transcript text for the spoken article.',
+					'default'             => '',
+					'show_in_rest'        => true,
+					'sanitize_callback'   => 'sanitize_textarea_field',
+					'auth_callback'       => function () {
+						return current_user_can( 'edit_posts' );
+					},
+					'revisions_enabled'   => true,
+				)
+			);
+
+			register_post_meta(
+				$post_type,
+				'spoken_article_transcript_is_draft',
+				array(
+					'single'            => true,
+					'type'              => 'boolean',
+					'description'       => 'Whether the transcript is a saved draft (not yet used for audio generation).',
+					'default'           => false,
+					'show_in_rest'      => true,
+					'auth_callback'     => function () {
+						return current_user_can( 'edit_posts' );
+					},
+					'revisions_enabled' => true,
+				)
+			);
 		}
 	}
 }

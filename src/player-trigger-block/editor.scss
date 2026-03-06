@@ -1,0 +1,24 @@
+.spoken-article-editor {
+	&__preview {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 4px 12px;
+		font-size: 14px;
+		font-weight: 500;
+		color: #333;
+	}
+
+	&__icon {
+		fill: currentColor;
+		flex-shrink: 0;
+	}
+
+	&__duration {
+		white-space: nowrap;
+
+		&--placeholder {
+			opacity: 0.4;
+		}
+	}
+}

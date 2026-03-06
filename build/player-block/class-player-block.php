@@ -7,12 +7,12 @@
 
 namespace PRC\Platform\Spoken_Article;
 
-use PRC\Platform\Spoken_Article\Post_Meta;
-use PRC\Platform\Spoken_Article\Rest_API;
 use WP_Block;
 
 /**
- * Player Block class — block registration and render only.
+ * Player Block class — renders the persistent dialog/audio player.
+ * Intended for placement in the site footer template so it's always available.
+ * Audio data is supplied by the trigger block via Interactivity API global state.
  */
 class Player_Block {
 
@@ -57,8 +57,9 @@ class Player_Block {
 	/**
 	 * Render callback for the block.
 	 *
-	 * Reads audio data from post meta. Outputs an inline trigger and a
-	 * floating <dialog> player controlled via the Interactivity API.
+	 * Outputs the floating <dialog> player controlled via the Interactivity API.
+	 * The player starts with empty defaults — audio data is injected by the
+	 * trigger block's `actions.requestPlay` or restored from session storage.
 	 *
 	 * @param array    $attributes Block attributes.
 	 * @param string   $content Block content.
@@ -66,34 +67,27 @@ class Player_Block {
 	 * @return string Rendered block HTML.
 	 */
 	public function render_block_callback( $attributes, $content, $block ) {
+		// @TODO: Right now this is in BETA mode, so we only want to show the block to logged in users.
+		if ( ! is_user_logged_in() ) {
+			return '';
+		}
+
 		if ( is_admin() ) {
 			return '';
 		}
-
-		$post_id = $block->context['postId'] ?? get_the_ID();
-		if ( ! $post_id ) {
-			return '';
-		}
-
-		$spoken = get_post_meta( $post_id, Post_Meta::META_KEY, true );
-		if ( empty( $spoken ) || empty( $spoken['attachment_id'] ) || empty( $spoken['audio_url'] ) ) {
-			return '';
-		}
-
-		$audio_url  = $spoken['audio_url'];
-		$duration   = $spoken['duration'] ?? '';
-		$post_title = get_the_title( $post_id );
 
 		$block_wrapper_attrs = get_block_wrapper_attributes(
 			array(
 				'data-wp-interactive' => wp_json_encode( array( 'namespace' => 'prc-spoken-article/player' ) ),
 				'data-wp-context'     => wp_json_encode(
 					array(
-						'audioUrl'          => esc_url( $audio_url ),
-						'duration'          => esc_attr( $duration ),
-						'postTitle'         => esc_attr( $post_title ),
-						'postId'            => $post_id,
-						'playCountEndpoint' => esc_url( rest_url( Rest_API::NAMESPACE . '/play-count/' . $post_id ) ),
+						'audioUrl'          => '',
+						'duration'          => '',
+						'postTitle'         => '',
+						'postUrl'           => '',
+						'postId'            => 0,
+						'playCountEndpoint' => '',
+						'hasAudio'          => false,
 						'isPlaying'         => false,
 						'isPlayerOpen'      => false,
 						'isExpanded'        => false,
@@ -103,23 +97,13 @@ class Player_Block {
 						'hasTrackedPlay'    => false,
 					)
 				),
+				'data-wp-watch'       => 'callbacks.onPendingAudio',
 			)
 		);
 
 		ob_start();
 		?>
 		<div <?php echo $block_wrapper_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> data-wp-init="callbacks.onInit">
-			<button
-				class="spoken-article-trigger"
-				data-wp-on--click="actions.openPlayer"
-				aria-label="<?php esc_attr_e( 'Listen to this article', 'prc-spoken-article' ); ?>"
-			>
-				<?php echo \PRC\Platform\Icons\render( 'solid', 'headphones' ); ?>
-				<span class="spoken-article-trigger__duration">
-					<?php echo esc_html( $duration ); ?>
-				</span>
-			</button>
-
 			<dialog
 				class="spoken-article-dialog"
 				data-wp-ref="playerDialog"
@@ -127,11 +111,21 @@ class Player_Block {
 			>
 				<div class="spoken-article-player" data-wp-class--is-expanded="context.isExpanded">
 					<div class="spoken-article-player__header">
-						<div class="spoken-article-player__title-row">
-							<span class="spoken-article-player__title" data-wp-text="context.postTitle"></span>
-							<span class="spoken-article-player__duration-badge" data-wp-text="context.duration"></span>
-						</div>
-						<div class="spoken-article-player__controls-mini">
+						<button
+							class="spoken-article-player__resume-btn"
+							data-wp-bind--hidden="!state.showIOSResumePrompt"
+							data-wp-on--click="actions.togglePlay"
+							aria-label="<?php esc_attr_e( 'Resume playback', 'prc-spoken-article' ); ?>"
+						>
+							<?php echo \PRC\Platform\Icons\render( 'solid', 'play' ); ?>
+							<?php esc_html_e( 'Resume', 'prc-spoken-article' ); ?>
+						</button>
+						<div class="spoken-article-player__header-row">
+							<div class="spoken-article-player__title-row">
+								<span class="spoken-article-player__title" data-wp-text="context.postTitle"></span>
+								<span class="spoken-article-player__duration-badge" data-wp-text="context.duration"></span>
+							</div>
+							<div class="spoken-article-player__controls-mini">
 							<button
 								class="spoken-article-player__play-btn"
 								data-wp-on--click="actions.togglePlay"
@@ -159,6 +153,7 @@ class Player_Block {
 							>
 								<?php echo \PRC\Platform\Icons\render( 'solid', 'xmark' ); ?>
 							</button>
+						</div>
 						</div>
 					</div>
 
@@ -230,6 +225,15 @@ class Player_Block {
 						<p class="spoken-article-player__disclaimer">
 							<?php esc_html_e( 'Voice is AI-generated. Inconsistencies may occur.', 'prc-spoken-article' ); ?>
 						</p>
+
+						<a
+							class="spoken-article-player__back-link"
+							href="#"
+							data-wp-bind--href="context.postUrl"
+							data-wp-bind--hidden="!context.postUrl"
+						>
+							<?php esc_html_e( "Go to article you're listening to", 'prc-spoken-article' ); ?>
+						</a>
 					</div>
 				</div>
 

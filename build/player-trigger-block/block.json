@@ -1,11 +1,14 @@
 {
   "$schema": "https://schemas.wp.org/trunk/block.json",
   "apiVersion": 3,
-  "name": "prc-spoken-article/player",
+  "name": "prc-spoken-article/player-trigger",
   "version": "0.1.0",
-  "title": "Spoken Article",
+  "title": "Spoken Article Trigger",
   "category": "media",
-  "description": "Persistent audio player dialog — place in footer template for cross-page playback",
+  "description": "Inline trigger button that opens the spoken article player when audio is available",
+  "usesContext": [
+    "postId"
+  ],
   "supports": {
     "anchor": true,
     "html": false,
@@ -25,6 +28,5 @@
   "textdomain": "prc-spoken-article",
   "editorScript": "file:./index.js",
   "editorStyle": "file:./index.css",
-  "style": "file:./style-index.css",
-  "viewModule": "file:./view.js"
+  "style": "file:./style-index.css"
 }

@@ -31,6 +31,11 @@ class Schema {
 	 * @return object Modified schema object.
 	 */
 	public function add_audio_schema( $schema, $post_id, $seo_data ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		// @TODO: Right now this is in BETA mode, so we only want to show the schema to logged in users.
+		if ( ! is_user_logged_in() ) {
+			return $schema;
+		}
+
 		$post = get_post( $post_id );
 		if ( ! $post || ! post_type_supports( $post->post_type, Bootstrap::POST_TYPE_SUPPORT ) ) {
 			return $schema;
