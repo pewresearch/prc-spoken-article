@@ -95,9 +95,11 @@ class Player_Block {
 						'totalDuration'     => 0,
 						'playbackRate'      => 1,
 						'hasTrackedPlay'    => false,
+						'tabName'           => '',
 					)
 				),
-				'data-wp-watch'       => 'callbacks.onPendingAudio',
+				'data-wp-watch--pending-audio' => 'callbacks.onPendingAudio',
+				'data-wp-watch--auth-ready'    => 'callbacks.onAuthReady',
 			)
 		);
 
@@ -137,6 +139,32 @@ class Player_Block {
 								<span data-wp-bind--hidden="!context.isPlaying">
 									<?php echo \PRC\Platform\Icons\render( 'solid', 'pause' ); ?>
 								</span>
+							</button>
+							<span
+								data-wp-interactive='<?php echo wp_json_encode( array( 'namespace' => 'prc-user-accounts/saved-articles' ) ); ?>'
+								data-wp-bind--hidden="!state.isUserLoggedIn"
+							>
+								<button
+									class="spoken-article-player__save-btn"
+									data-wp-on--click="actions.saveArticle"
+									data-wp-class--is-saved="state.isArticleSaved"
+									aria-label="<?php esc_attr_e( 'Save for later', 'prc-spoken-article' ); ?>"
+								>
+									<span data-wp-bind--hidden="state.isArticleSaved">
+										<?php echo \PRC\Platform\Icons\render( 'regular', 'bookmark' ); ?>
+									</span>
+									<span data-wp-bind--hidden="!state.isArticleSaved">
+										<?php echo \PRC\Platform\Icons\render( 'solid', 'bookmark' ); ?>
+									</span>
+								</button>
+							</span>
+							<button
+								class="spoken-article-player__library-btn"
+								data-wp-on--click="actions.toggleLibrary"
+								aria-label="<?php esc_attr_e( 'Library', 'prc-spoken-article' ); ?>"
+								data-wp-class--is-active="state.isLibraryOpen"
+							>
+								<?php echo \PRC\Platform\Icons\render( 'solid', 'list' ); ?>
 							</button>
 							<button
 								class="spoken-article-player__expand-btn"
@@ -212,6 +240,123 @@ class Player_Block {
 							<button class="spoken-article-player__speed-btn" data-wp-on--click="actions.decreaseSpeed" aria-label="<?php esc_attr_e( 'Decrease speed', 'prc-spoken-article' ); ?>">−</button>
 							<span class="spoken-article-player__speed-value" data-wp-text="state.speedLabel"></span>
 							<button class="spoken-article-player__speed-btn" data-wp-on--click="actions.increaseSpeed" aria-label="<?php esc_attr_e( 'Increase speed', 'prc-spoken-article' ); ?>">+</button>
+						</div>
+
+						<div class="spoken-article-player__library" data-wp-bind--hidden="!state.isLibraryOpen">
+							<div class="spoken-article-player__library-tabs">
+								<button
+									class="spoken-article-player__library-tab"
+									data-wp-context='<?php echo wp_json_encode( array( 'tabName' => 'queue' ) ); ?>'
+									data-wp-on--click="actions.setLibraryTab"
+									data-wp-class--is-active-tab="state.isQueueTab"
+								><?php esc_html_e( 'Queue', 'prc-spoken-article' ); ?></button>
+								<button
+									class="spoken-article-player__library-tab"
+									data-wp-context='<?php echo wp_json_encode( array( 'tabName' => 'saved' ) ); ?>'
+									data-wp-on--click="actions.setLibraryTab"
+									data-wp-bind--hidden="!state.isUserLoggedIn"
+									data-wp-class--is-active-tab="state.isSavedTab"
+								><?php esc_html_e( 'Saved', 'prc-spoken-article' ); ?></button>
+								<button
+									class="spoken-article-player__library-tab"
+									data-wp-context='<?php echo wp_json_encode( array( 'tabName' => 'history' ) ); ?>'
+									data-wp-on--click="actions.setLibraryTab"
+									data-wp-bind--hidden="!state.isUserLoggedIn"
+									data-wp-class--is-active-tab="state.isHistoryTab"
+								><?php esc_html_e( 'History', 'prc-spoken-article' ); ?></button>
+							</div>
+
+							<div class="spoken-article-player__library-content">
+								<!-- Queue tab -->
+								<div class="spoken-article-player__library-list" data-wp-bind--hidden="!state.isQueueTab">
+									<p class="spoken-article-player__library-empty" data-wp-bind--hidden="state.hasQueueItems">
+										<?php esc_html_e( 'Queue is empty', 'prc-spoken-article' ); ?>
+									</p>
+									<template data-wp-each--item="state.queue" data-wp-each-key="context.item.postId">
+										<div class="spoken-article-player__library-item">
+											<div class="spoken-article-player__library-item-info">
+												<a class="spoken-article-player__library-item-title" data-wp-bind--href="context.item.postUrl" data-wp-text="context.item.postTitle"></a>
+												<span class="spoken-article-player__library-item-duration" data-wp-text="context.item.duration"></span>
+											</div>
+											<div class="spoken-article-player__library-item-actions">
+												<button
+													class="spoken-article-player__library-item-btn"
+													data-wp-on--click="actions.playFromQueue"
+													aria-label="<?php esc_attr_e( 'Play', 'prc-spoken-article' ); ?>"
+												>
+													<?php echo \PRC\Platform\Icons\render( 'solid', 'play' ); ?>
+												</button>
+												<button
+													class="spoken-article-player__library-item-btn"
+													data-wp-on--click="actions.removeFromQueue"
+													aria-label="<?php esc_attr_e( 'Remove', 'prc-spoken-article' ); ?>"
+												>
+													<?php echo \PRC\Platform\Icons\render( 'solid', 'xmark' ); ?>
+												</button>
+											</div>
+										</div>
+									</template>
+								</div>
+
+								<!-- Saved tab (uses prc-user-accounts/saved-articles store) -->
+								<div
+									class="spoken-article-player__library-list"
+									data-wp-bind--hidden="!state.isSavedTab"
+								>
+									<div data-wp-interactive='<?php echo wp_json_encode( array( 'namespace' => 'prc-user-accounts/saved-articles' ) ); ?>'>
+										<p class="spoken-article-player__library-empty" data-wp-bind--hidden="state.hasSavedItems">
+											<?php esc_html_e( 'No saved articles', 'prc-spoken-article' ); ?>
+										</p>
+										<template data-wp-each--item="state.savedList" data-wp-each-key="context.item.postId">
+											<div class="spoken-article-player__library-item">
+												<div class="spoken-article-player__library-item-info">
+													<a class="spoken-article-player__library-item-title" data-wp-bind--href="context.item.postUrl" data-wp-text="context.item.postTitle"></a>
+												</div>
+												<div class="spoken-article-player__library-item-actions">
+													<button
+														class="spoken-article-player__library-item-btn"
+														data-wp-on--click="actions.removeArticle"
+														aria-label="<?php esc_attr_e( 'Remove', 'prc-spoken-article' ); ?>"
+													>
+														<?php echo \PRC\Platform\Icons\render( 'solid', 'xmark' ); ?>
+													</button>
+												</div>
+											</div>
+										</template>
+									</div>
+								</div>
+
+								<!-- History tab -->
+								<div class="spoken-article-player__library-list" data-wp-bind--hidden="!state.isHistoryTab">
+									<p class="spoken-article-player__library-empty" data-wp-bind--hidden="state.hasHistoryItems">
+										<?php esc_html_e( 'No listening history', 'prc-spoken-article' ); ?>
+									</p>
+									<template data-wp-each--item="state.historyList" data-wp-each-key="context.item.postId">
+										<div class="spoken-article-player__library-item">
+											<div class="spoken-article-player__library-item-info">
+												<a class="spoken-article-player__library-item-title" data-wp-bind--href="context.item.postUrl" data-wp-text="context.item.postTitle"></a>
+												<span class="spoken-article-player__library-item-duration" data-wp-text="context.item.duration"></span>
+											</div>
+											<div class="spoken-article-player__library-item-actions">
+												<button
+													class="spoken-article-player__library-item-btn"
+													data-wp-on--click="actions.playFromLibrary"
+													aria-label="<?php esc_attr_e( 'Play', 'prc-spoken-article' ); ?>"
+												>
+													<?php echo \PRC\Platform\Icons\render( 'solid', 'play' ); ?>
+												</button>
+											</div>
+										</div>
+									</template>
+									<button
+										class="spoken-article-player__clear-history-btn"
+										data-wp-on--click="actions.clearHistory"
+										data-wp-bind--hidden="!state.hasHistoryItems"
+									>
+										<?php esc_html_e( 'Clear History', 'prc-spoken-article' ); ?>
+									</button>
+								</div>
+							</div>
 						</div>
 
 						<button

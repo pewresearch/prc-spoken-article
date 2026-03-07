@@ -2,23 +2,25 @@
  * WordPress Dependencies
  */
 import { __ } from '@wordpress/i18n';
-import { useBlockProps } from '@wordpress/block-editor';
+import { useBlockProps, Warning } from '@wordpress/block-editor';
+import { Flex, FlexBlock, FlexItem } from '@wordpress/components';
+import { Icon, audio } from '@wordpress/icons';
 
 export default function Edit() {
-	const blockProps = useBlockProps({
-		className: 'spoken-article-player-editor',
-	});
+	const blockProps = useBlockProps();
 
 	return (
 		<div {...blockProps}>
-			<div className="spoken-article-player-editor__placeholder">
-				<span className="spoken-article-player-editor__label">
-					{__(
-						'Spoken Article Player — place in footer template',
-						'prc-spoken-article'
-					)}
-				</span>
-			</div>
+			<Warning>
+				<Flex>
+					<FlexBlock style={{ minWidth: '20px' }}>
+						<Icon icon={audio} />
+					</FlexBlock>
+					<FlexItem>
+						{__('Spoken Article Player', 'prc-spoken-article')}
+					</FlexItem>
+				</Flex>
+			</Warning>
 		</div>
 	);
 }

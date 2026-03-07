@@ -1,19 +1,19 @@
 {
   "$schema": "https://schemas.wp.org/trunk/block.json",
   "apiVersion": 3,
-  "name": "prc-spoken-article/player-trigger",
-  "version": "0.1.0",
-  "title": "Spoken Article Trigger",
-  "category": "media",
-  "description": "Inline trigger button that opens the spoken article player when audio is available",
+  "name": "prc-spoken-article/player-add-to-queue",
+  "version": "1.0.0",
+  "title": "Add to Queue",
+  "category": "widgets",
+  "description": "Add-to-queue button for spoken articles. Place inside a content-gate block with allowPassThrough enabled.",
   "usesContext": [
     "postId"
   ],
+  "attributes": {},
   "supports": {
     "anchor": true,
     "html": false,
-    "multiple": false,
-    "reusable": false,
+    "interactivity": true,
     "color": {
       "background": true,
       "text": true,
@@ -30,10 +30,6 @@
       }
     },
     "spacing": {
-      "margin": [
-        "top",
-        "bottom"
-      ],
       "padding": true,
       "__experimentalDefaultControls": {
         "padding": true
@@ -54,6 +50,5 @@
   },
   "textdomain": "prc-spoken-article",
   "editorScript": "file:./index.js",
-  "editorStyle": "file:./index.css",
   "style": "file:./style-index.css"
 }

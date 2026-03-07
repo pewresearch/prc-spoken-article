@@ -4,9 +4,9 @@
 	"description": "Audio player block for AI-generated spoken article narration",
 	"license": "GPL-2.0-or-later",
 	"scripts": {
-		"build": "wp-scripts build --source-path=./src/player-block --output-path=./build/player-block --webpack-copy-php --experimental-modules; wp-scripts build --source-path=./src/player-trigger-block --output-path=./build/player-trigger-block --webpack-copy-php --experimental-modules",
+		"build": "npm run build:blocks && npm run build:sidebar",
+		"build:blocks": "wp-scripts build --source-path=./src/player-block --output-path=./build/player-block --webpack-copy-php --experimental-modules; wp-scripts build --source-path=./src/player-trigger-block --output-path=./build/player-trigger-block --webpack-copy-php --experimental-modules; wp-scripts build --source-path=./src/player-add-to-queue-block --output-path=./build/player-add-to-queue-block --webpack-copy-php --experimental-modules",
 		"build:sidebar": "wp-scripts build --source-path=./src/sidebar --output-path=./build/sidebar --webpack-copy-php",
-		"build:all": "npm run build && npm run build:sidebar",
 		"start": "wp-scripts start --source-path=./src/player-block --output-path=./build/player-block --webpack-copy-php --experimental-modules",
 		"start:sidebar": "wp-scripts start --source-path=./src/sidebar --output-path=./build/sidebar --webpack-copy-php"
 	},

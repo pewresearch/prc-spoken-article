@@ -13,9 +13,7 @@ import { useEntityProp } from '@wordpress/core-data';
 import { store as editorStore } from '@wordpress/editor';
 
 export default function Edit() {
-	const blockProps = useBlockProps({
-		className: 'spoken-article-editor',
-	});
+	const blockProps = useBlockProps();
 
 	const postType = useSelect(
 		(select) => select(editorStore).getCurrentPostType(),
@@ -27,22 +25,20 @@ export default function Edit() {
 	const hasAudio = spokenArticle?.attachment_id && spokenArticle?.audio_url;
 
 	return (
-		<div {...blockProps}>
-			<div className="spoken-article-editor__preview">
-				<Icon icon="headphones" library="solid" />
-				<span
-					className={`spoken-article-editor__duration${
-						!hasAudio
-							? ' spoken-article-editor__duration--placeholder'
-							: ''
-					}`}
-				>
-					{hasAudio
-						? spokenArticle.duration ||
-							__('Audio ready', 'prc-spoken-article')
-						: __('— min', 'prc-spoken-article')}
-				</span>
-			</div>
-		</div>
+		<button
+			{...blockProps}
+			aria-label={__('Listen to this article', 'prc-spoken-article')}
+		>
+			<Icon icon="headphones" library="solid" />
+			<span
+				className="spoken-article-trigger__duration"
+				style={!hasAudio ? { opacity: 0.4 } : undefined}
+			>
+				{hasAudio
+					? spokenArticle.duration ||
+						__('Audio ready', 'prc-spoken-article')
+					: __('— min', 'prc-spoken-article')}
+			</span>
+		</button>
 	);
 }

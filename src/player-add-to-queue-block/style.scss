@@ -1,0 +1,72 @@
+.wp-block-prc-spoken-article-player-add-to-queue {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--wp--preset--color--ui-gray-dark);
+	background: var(--wp--preset--color--ui-white);
+	cursor: pointer;
+	padding: 4px;
+	border-radius: 50%;
+	transition:
+		color 0.15s,
+		background 0.15s;
+
+	svg {
+		fill: currentColor;
+		width: 14px;
+		height: 14px;
+	}
+
+	&:hover {
+		color: #333;
+		background: rgba(0, 0, 0, 0.05);
+	}
+
+	&:focus-visible {
+		outline: 2px solid #0073aa;
+		outline-offset: 2px;
+	}
+
+	.player-add-to-queue__toast {
+		position: absolute;
+		bottom: calc(100% + 6px);
+		left: 50%;
+		transform: translateX(-50%);
+		background: #1e1e1e;
+		color: #fff;
+		font-size: 11px;
+		line-height: 1;
+		white-space: nowrap;
+		padding: 4px 8px;
+		border-radius: 3px;
+		pointer-events: none;
+		animation: player-add-to-queue-toast-fade 2s ease-out forwards;
+
+		&::after {
+			content: "";
+			position: absolute;
+			top: 100%;
+			left: 50%;
+			transform: translateX(-50%);
+			border: 4px solid transparent;
+			border-top-color: #1e1e1e;
+		}
+
+		&[hidden] {
+			display: none;
+		}
+	}
+}
+
+@keyframes player-add-to-queue-toast-fade {
+	0% {
+		opacity: 1;
+	}
+	60% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}

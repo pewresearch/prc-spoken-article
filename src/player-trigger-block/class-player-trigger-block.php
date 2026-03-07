@@ -10,6 +10,7 @@ namespace PRC\Platform\Spoken_Article;
 use PRC\Platform\Spoken_Article\Post_Meta;
 use PRC\Platform\Spoken_Article\Rest_API;
 use WP_Block;
+use WP_HTML_Tag_Processor;
 
 /**
  * Renders the inline trigger button that opens the spoken article player.
@@ -83,42 +84,38 @@ class Player_Trigger_Block {
 			return '';
 		}
 
-		$audio_url  = $spoken['audio_url'];
-		$duration   = $spoken['duration'] ?? '';
-		$post_title = get_the_title( $post_id );
-		$post_url   = get_permalink( $post_id );
-
-		$block_wrapper_attrs = get_block_wrapper_attributes(
-			array(
-				'data-wp-interactive' => wp_json_encode( array( 'namespace' => 'prc-spoken-article/player' ) ),
-				'data-wp-context'     => wp_json_encode(
-					array(
-						'audioUrl'          => esc_url( $audio_url ),
-						'duration'          => esc_attr( $duration ),
-						'postTitle'         => esc_attr( $post_title ),
-						'postUrl'           => esc_url( $post_url ),
-						'postId'            => $post_id,
-						'playCountEndpoint' => esc_url( rest_url( Rest_API::NAMESPACE . '/play-count/' . $post_id ) ),
-					)
-				),
-			)
+		$audio_url   = $spoken['audio_url'];
+		$duration    = $spoken['duration'] ?? '';
+		$post_title  = get_the_title( $post_id );
+		$post_url    = get_permalink( $post_id );
+		$context     = array(
+			'audioUrl'          => esc_url( $audio_url ),
+			'duration'          => sanitize_text_field( $duration ),
+			'postTitle'         => sanitize_text_field( $post_title ),
+			'postUrl'           => esc_url( $post_url ),
+			'postId'            => $post_id,
+			'playCountEndpoint' => esc_url( rest_url( Rest_API::NAMESPACE . '/play-count/' . $post_id ) ),
 		);
 
-		ob_start();
-		?>
-		<div <?php echo $block_wrapper_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
-			<button
-				class="spoken-article-trigger"
-				data-wp-on--click="actions.requestPlay"
-				aria-label="<?php esc_attr_e( 'Listen to this article', 'prc-spoken-article' ); ?>"
-			>
-				<?php echo \PRC\Platform\Icons\render( 'solid', 'headphones' ); ?>
-				<span class="spoken-article-trigger__duration">
-					<?php echo esc_html( $duration ); ?>
-				</span>
-			</button>
-		</div>
-		<?php
-		return ob_get_clean();
+		if ( empty( trim( $content ) ) ) {
+			return '';
+		}
+
+		$tags = new WP_HTML_Tag_Processor( $content );
+		if ( $tags->next_tag( 'button' ) ) {
+			$tags->set_attribute( 'data-wp-interactive', wp_json_encode( array( 'namespace' => 'prc-spoken-article/player' ) ) );
+			$tags->set_attribute( 'data-wp-context', wp_json_encode( $context ) );
+			$tags->set_attribute( 'data-wp-on--click', 'actions.requestPlay' );
+		}
+		if ( $tags->next_tag( array( 'class_name' => 'spoken-article-trigger__duration' ) ) ) {
+			$tags->set_attribute( 'data-wp-text', 'context.duration' );
+		}
+		$html = $tags->get_updated_html();
+
+		return str_replace(
+			'<span class="prc-icon-placeholder" data-icon="solid/headphones"></span>',
+			\PRC\Platform\Icons\render( 'solid', 'headphones' ),
+			$html
+		);
 	}
 }

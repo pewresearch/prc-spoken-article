@@ -1,34 +1,31 @@
 .wp-block-prc-spoken-article-player-trigger {
-	.spoken-article-trigger {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		border: none;
-		background: transparent;
-		color: #333;
-		cursor: pointer;
-		font-size: 14px;
-		font-weight: 500;
-		line-height: 1.4;
-		transition: color 0.15s;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	background: var(--wp--preset--color--ui-white);
+	color: var(--wp--preset--color--ui-gray-dark);
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1.4;
+	cursor: pointer;
+	transition: color 0.15s;
 
-		&:hover,
-		&:focus-visible {
-			color: #000;
-		}
+	&:hover,
+	&:focus-visible {
+		color: #000;
+	}
 
-		&:focus-visible {
-			outline: 2px solid #0073aa;
-			outline-offset: 2px;
-		}
+	&:focus-visible {
+		outline: 2px solid #0073aa;
+		outline-offset: 2px;
+	}
 
-		&__icon {
-			fill: currentColor;
-			flex-shrink: 0;
-		}
+	svg {
+		fill: currentColor;
+		flex-shrink: 0;
+	}
 
-		&__duration {
-			white-space: nowrap;
-		}
+	.spoken-article-trigger__duration {
+		white-space: nowrap;
 	}
 }

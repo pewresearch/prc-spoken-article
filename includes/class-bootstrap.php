@@ -49,6 +49,7 @@ class Bootstrap {
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-schema.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-wp-admin.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-media-library.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-podcast-feed.php';
 
 		$dev_mode  = 'local' === wp_get_environment_type();
 		$block_src = $dev_mode ? 'src' : 'build';
@@ -62,6 +63,12 @@ class Bootstrap {
 		if ( file_exists( $trigger_block_path ) ) {
 			require_once $trigger_block_path;
 		}
+
+		$add_to_queue_block_path = plugin_dir_path( __DIR__ ) . $block_src . '/player-add-to-queue-block/class-player-add-to-queue-block.php';
+		if ( file_exists( $add_to_queue_block_path ) ) {
+			require_once $add_to_queue_block_path;
+		}
+
 	}
 
 	/**
@@ -77,8 +84,10 @@ class Bootstrap {
 		new Schema( $this->get_loader() );
 		new WP_Admin( $this->get_loader() );
 		new Media_Library( $this->get_loader() );
+		new Podcast_Feed( $this->get_loader() );
 		new Player_Block( $this->get_loader() );
 		new Player_Trigger_Block( $this->get_loader() );
+		new Player_Add_To_Queue_Block( $this->get_loader() );
 	}
 
 	/**

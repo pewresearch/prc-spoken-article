@@ -10,7 +10,8 @@ namespace PRC\Platform\Spoken_Article;
 use WordPress\AI_Client\AI_Client;
 
 /**
- * Registers REST routes for play-count increment and TTS text extraction.
+ * Registers REST routes for play-count increment, TTS text extraction,
+ * and voice selection.
  */
 class Rest_API {
 
@@ -85,6 +86,7 @@ class Rest_API {
 				),
 			)
 		);
+
 	}
 
 	/**

@@ -1,256 +1,50 @@
+/* eslint-disable max-lines */
 /**
  * WordPress Dependencies
  */
 import { store, getContext, getElement } from '@wordpress/interactivity';
 
-const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
-const STORAGE_KEY = 'prc-spoken-article-playback';
-const STALE_MS = 24 * 60 * 60 * 1000;
-
-function isIOS() {
-	return (
-		/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-		(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-	);
-}
-
-let restored = false;
-let lastSaveTime = 0;
-let blockRoot = null;
-
-function formatTime(seconds) {
-	if (!seconds || !isFinite(seconds)) {
-		return '0:00';
-	}
-	const s = Math.floor(seconds);
-	const m = Math.floor(s / 60);
-	const sec = s % 60;
-	return `${m}:${String(sec).padStart(2, '0')}`;
-}
-
-function getAudio() {
-	return blockRoot?.querySelector('[data-wp-ref="audioElement"]');
-}
-
-function getDialog() {
-	return blockRoot?.querySelector('[data-wp-ref="playerDialog"]');
-}
-
-function saveState(ctx) {
-	try {
-		sessionStorage.setItem(
-			STORAGE_KEY,
-			JSON.stringify({
-				audioUrl: ctx.audioUrl,
-				postTitle: ctx.postTitle,
-				postId: ctx.postId,
-				postUrl: ctx.postUrl,
-				currentTime: ctx.currentTime,
-				playbackRate: ctx.playbackRate,
-				isPlaying: ctx.isPlaying,
-				isExpanded: ctx.isExpanded,
-				duration: ctx.duration,
-				playCountEndpoint: ctx.playCountEndpoint,
-				hasTrackedPlay: ctx.hasTrackedPlay,
-				savedAt: Date.now(),
-			})
-		);
-	} catch {
-		// Storage full or unavailable — ignore.
-	}
-}
-
-function clearState() {
-	try {
-		sessionStorage.removeItem(STORAGE_KEY);
-	} catch {
-		// Ignore.
-	}
-}
-
-function getSavedState() {
-	try {
-		const raw = sessionStorage.getItem(STORAGE_KEY);
-		if (!raw) {
-			return null;
-		}
-		const state = JSON.parse(raw);
-		if (Date.now() - (state.savedAt || 0) > STALE_MS) {
-			sessionStorage.removeItem(STORAGE_KEY);
-			return null;
-		}
-		return state;
-	} catch {
-		return null;
-	}
-}
-
-function updateMediaSessionMetadata(ctx) {
-	if (!('mediaSession' in navigator)) {
-		return;
-	}
-	navigator.mediaSession.metadata = new MediaMetadata({
-		title: ctx.postTitle,
-		artist: 'Pew Research Center',
-		album: 'Spoken Articles',
-	});
-}
-
-function updateMediaSessionPosition(ctx) {
-	if (!('mediaSession' in navigator) || !ctx.totalDuration) {
-		return;
-	}
-	try {
-		navigator.mediaSession.setPositionState({
-			duration: ctx.totalDuration,
-			playbackRate: ctx.playbackRate,
-			position: Math.min(ctx.currentTime, ctx.totalDuration),
-		});
-	} catch {
-		// Some browsers reject invalid position values.
-	}
-}
-
-function registerMediaSessionHandlers() {
-	if (!('mediaSession' in navigator) || !blockRoot) {
-		return;
-	}
-
-	navigator.mediaSession.setActionHandler('play', () => {
-		const audio = getAudio();
-		if (audio) {
-			audio.play();
-		}
-	});
-
-	navigator.mediaSession.setActionHandler('pause', () => {
-		const audio = getAudio();
-		if (audio) {
-			audio.pause();
-		}
-	});
-
-	navigator.mediaSession.setActionHandler('stop', () => {
-		const audio = getAudio();
-		const dialog = getDialog();
-		if (audio) {
-			audio.pause();
-			audio.currentTime = 0;
-		}
-		if (dialog?.open) {
-			dialog.close();
-		}
-		clearState();
-	});
-
-	navigator.mediaSession.setActionHandler('seekbackward', () => {
-		const audio = getAudio();
-		if (audio) {
-			audio.currentTime = Math.max(0, audio.currentTime - 15);
-		}
-	});
-
-	navigator.mediaSession.setActionHandler('seekforward', () => {
-		const audio = getAudio();
-		if (audio) {
-			audio.currentTime = Math.min(
-				audio.duration || 0,
-				audio.currentTime + 15
-			);
-		}
-	});
-
-	navigator.mediaSession.setActionHandler('seekto', (details) => {
-		const audio = getAudio();
-		if (audio && details.seekTime != null) {
-			audio.currentTime = details.seekTime;
-		}
-	});
-}
-
 /**
- * Loads audio into the player and starts playback.
- * Shared by both onPendingAudio (trigger click) and onInit (session restore).
+ * Internal Dependencies
  */
-function loadAndPlay(ctx, audioUrl, savedTime = 0, shouldPlay = true) {
-	const audio = getAudio();
-	const dialog = getDialog();
+import { SPEEDS, formatTime, isIOS } from './utils';
+import {
+	saveState,
+	clearState,
+	getSavedState,
+	saveQueue,
+	loadQueue,
+} from './session-storage';
+import { getUserHeaders, isUserLoggedIn } from './user-auth';
+import {
+	registerMediaSessionHandlers,
+	updateMediaSessionMetadata,
+	updateMediaSessionPosition,
+} from './media-session';
+import { setBlockRoot, getAudio, getDialog, loadAndPlay } from './audio-engine';
 
-	if (!audio) {
-		return;
-	}
+const restBase = window.prcPlatform.siteUrl;
+let restored = false;
+let libraryFetched = false;
+let lastSaveTime = 0;
+let pendingHistoryEntry = null;
 
-	const onReady = () => {
-		audio.removeEventListener('loadedmetadata', onReady);
-		audio.removeEventListener('error', onError);
-
-		if (isFinite(audio.duration)) {
-			ctx.totalDuration = audio.duration;
-		}
-
-		if (savedTime > 0) {
-			audio.currentTime = Math.min(savedTime, audio.duration || 0);
-			ctx.currentTime = audio.currentTime;
-		}
-
-		audio.playbackRate = ctx.playbackRate;
-
-		if (dialog && !dialog.open) {
-			dialog.show();
-		}
-		ctx.isPlayerOpen = true;
-
-		updateMediaSessionMetadata(ctx);
-
-		if (shouldPlay) {
-			audio.play().then(
-				() => {
-					ctx.isPlaying = true;
-					saveState(ctx);
-				},
-				() => {
-					ctx.isPlaying = false;
-				}
-			);
-		}
-	};
-
-	const onError = () => {
-		audio.removeEventListener('loadedmetadata', onReady);
-		audio.removeEventListener('error', onError);
-		clearState();
-	};
-
-	const source = audio.querySelector('source');
-	const currentSrc = source?.getAttribute('src') || '';
-	const sameSource = currentSrc === audioUrl;
-
-	if (sameSource && audio.readyState >= 1) {
-		onReady();
-	} else {
-		audio.addEventListener('loadedmetadata', onReady);
-		audio.addEventListener('error', onError);
-		if (!sameSource) {
-			if (source) {
-				source.src = audioUrl;
-			}
-			audio.load();
-		}
-	}
-}
-
-const { state } = store('prc-spoken-article/player', {
+const { state, actions } = store('prc-spoken-article/player', {
 	state: {
 		pendingAudio: null,
+		queue: [],
+		userLibrary: { history: {}, saved: {} },
+		isLibraryOpen: false,
+		libraryTab: 'queue',
+		queueAddedToast: '',
+
+		get isUserLoggedIn() {
+			return isUserLoggedIn();
+		},
 
 		get showIOSResumePrompt() {
 			const ctx = getContext();
-			return (
-				isIOS() &&
-				ctx.hasAudio &&
-				!ctx.isPlaying &&
-				!ctx.isExpanded
-			);
+			return isIOS() && ctx.hasAudio && !ctx.isPlaying && !ctx.isExpanded;
 		},
 
 		get progressPercent() {
@@ -276,12 +70,56 @@ const { state } = store('prc-spoken-article/player', {
 			const ctx = getContext();
 			return `${ctx.playbackRate}x`;
 		},
+
+		get currentArticleSaved() {
+			const ctx = getContext();
+			if (!ctx.postId || !state.userLibrary?.saved) {
+				return false;
+			}
+			return !!state.userLibrary.saved[String(ctx.postId)];
+		},
+
+		get isQueueTab() {
+			return state.libraryTab === 'queue';
+		},
+		get isSavedTab() {
+			return state.libraryTab === 'saved';
+		},
+		get isHistoryTab() {
+			return state.libraryTab === 'history';
+		},
+
+		get hasQueueItems() {
+			return state.queue.length > 0;
+		},
+		get hasSavedItems() {
+			return state.savedList.length > 0;
+		},
+		get hasHistoryItems() {
+			return state.historyList.length > 0;
+		},
+
+		get historyList() {
+			const history = state.userLibrary?.history || {};
+			return Object.entries(history)
+				.map(([id, item]) => ({
+					...item,
+					postId: id,
+				}))
+				.sort((a, b) => (b.lastPlayedAt || 0) - (a.lastPlayedAt || 0));
+		},
+
+		get savedList() {
+			const saved = state.userLibrary?.saved || {};
+			return Object.entries(saved)
+				.map(([id, item]) => ({
+					...item,
+					postId: id,
+				}))
+				.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+		},
 	},
 	actions: {
-		/**
-		 * Called by the trigger block's data-wp-on--click.
-		 * Reads the trigger's context and writes to state.pendingAudio.
-		 */
 		requestPlay() {
 			const ctx = getContext();
 			state.pendingAudio = {
@@ -308,6 +146,7 @@ const { state } = store('prc-spoken-article/player', {
 			context.isPlaying = false;
 			context.isPlayerOpen = false;
 			context.isExpanded = false;
+			state.isLibraryOpen = false;
 			clearState();
 		},
 
@@ -316,6 +155,7 @@ const { state } = store('prc-spoken-article/player', {
 			context.isPlayerOpen = false;
 			context.isPlaying = false;
 			context.isExpanded = false;
+			state.isLibraryOpen = false;
 			clearState();
 		},
 
@@ -365,6 +205,8 @@ const { state } = store('prc-spoken-article/player', {
 							headers: { 'Content-Type': 'application/json' },
 						}).catch(() => {});
 					}
+
+					actions.logToHistory();
 				}
 			}
 
@@ -398,6 +240,25 @@ const { state } = store('prc-spoken-article/player', {
 
 		onEnded() {
 			const context = getContext();
+
+			if (state.queue.length > 0) {
+				const next = state.queue[0];
+				state.queue = state.queue.slice(1);
+				saveQueue(state.queue);
+
+				context.audioUrl = next.audioUrl;
+				context.postTitle = next.postTitle;
+				context.postUrl = next.postUrl;
+				context.postId = next.postId;
+				context.duration = next.duration;
+				context.playCountEndpoint = next.playCountEndpoint;
+				context.hasTrackedPlay = false;
+				context.hasAudio = true;
+
+				loadAndPlay(context, next.audioUrl);
+				return;
+			}
+
 			context.isPlaying = false;
 			context.currentTime = 0;
 			clearState();
@@ -461,6 +322,194 @@ const { state } = store('prc-spoken-article/player', {
 				}
 			}
 		},
+
+		addToQueue() {
+			const ctx = getContext();
+			const item = {
+				audioUrl: ctx.audioUrl,
+				postTitle: ctx.postTitle,
+				postUrl: ctx.postUrl,
+				postId: ctx.postId,
+				duration: ctx.duration,
+				playCountEndpoint: ctx.playCountEndpoint,
+			};
+			const alreadyQueued = state.queue.some(
+				(q) => q.postId === item.postId
+			);
+			if (alreadyQueued) {
+				return;
+			}
+			state.queue = [...state.queue, item];
+			saveQueue(state.queue);
+
+			state.queueAddedToast = `Added to queue`;
+			setTimeout(() => {
+				state.queueAddedToast = '';
+			}, 2000);
+		},
+
+		removeFromQueue() {
+			const ctx = getContext();
+			const postId = ctx.item?.postId;
+			if (postId == null) {
+				return;
+			}
+			state.queue = state.queue.filter((q) => q.postId !== postId);
+			saveQueue(state.queue);
+		},
+
+		playFromQueue() {
+			const ctx = getContext();
+			const postId = ctx.item?.postId;
+			if (postId == null) {
+				return;
+			}
+			const idx = state.queue.findIndex((q) => q.postId === postId);
+			if (idx < 0) {
+				return;
+			}
+			const item = state.queue[idx];
+			state.queue = state.queue.filter((_, i) => i !== idx);
+			saveQueue(state.queue);
+
+			state.pendingAudio = {
+				audioUrl: item.audioUrl,
+				postTitle: item.postTitle,
+				postUrl: item.postUrl,
+				postId: item.postId,
+				duration: item.duration,
+				playCountEndpoint: item.playCountEndpoint,
+			};
+		},
+
+		playFromLibrary() {
+			const ctx = getContext();
+			const item = ctx.item;
+			if (!item) {
+				return;
+			}
+
+			state.pendingAudio = {
+				audioUrl: item.audioUrl,
+				postTitle: item.postTitle,
+				postUrl: item.postUrl,
+				postId: parseInt(item.postId, 10),
+				duration: item.duration,
+				playCountEndpoint: `${restBase}/wp-json/prc-spoken-article/v1/play-count/${item.postId}`,
+			};
+		},
+
+		logToHistory() {
+			const ctx = getContext();
+			if (!ctx.postId) {
+				return;
+			}
+
+			const postId = String(ctx.postId);
+			const now = Math.floor(Date.now() / 1000);
+
+			state.userLibrary = {
+				...state.userLibrary,
+				history: {
+					...state.userLibrary.history,
+					[postId]: {
+						postTitle: ctx.postTitle,
+						audioUrl: ctx.audioUrl,
+						postUrl: ctx.postUrl,
+						duration: ctx.duration,
+						lastPlayedAt: now,
+						playProgress: ctx.currentTime || 0,
+					},
+				},
+			};
+
+			const payload = {
+				postId: ctx.postId,
+				postTitle: ctx.postTitle,
+				audioUrl: ctx.audioUrl,
+				postUrl: ctx.postUrl,
+				duration: ctx.duration,
+				playProgress: ctx.currentTime || 0,
+			};
+
+			const headers = getUserHeaders();
+			if (!headers) {
+				pendingHistoryEntry = payload;
+				return;
+			}
+
+			actions._postHistory(payload, headers);
+		},
+
+		_postHistory(payload, headers) {
+			pendingHistoryEntry = null;
+			fetch(
+				`${restBase}/wp-json/prc-api/v3/user-accounts/listening-history`,
+				{
+					method: 'POST',
+					headers,
+					body: JSON.stringify(payload),
+				}
+			).catch(() => {});
+		},
+
+		fetchListeningHistory() {
+			const headers = getUserHeaders();
+			if (!headers) {
+				return;
+			}
+
+			fetch(
+				`${restBase}/wp-json/prc-api/v3/user-accounts/listening-history`,
+				{
+					method: 'GET',
+					headers,
+				}
+			)
+				.then((r) => r.json())
+				.then((data) => {
+					state.userLibrary = {
+						...state.userLibrary,
+						history: data || {},
+					};
+				})
+				.catch(() => {});
+		},
+
+		toggleLibrary() {
+			state.isLibraryOpen = !state.isLibraryOpen;
+			const ctx = getContext();
+			if (!ctx.isExpanded) {
+				ctx.isExpanded = true;
+			}
+		},
+
+		setLibraryTab() {
+			const ctx = getContext();
+			if (ctx.tabName) {
+				state.libraryTab = ctx.tabName;
+			}
+		},
+
+		clearHistory() {
+			const headers = getUserHeaders();
+			if (!headers) {
+				return;
+			}
+
+			state.userLibrary = {
+				...state.userLibrary,
+				history: {},
+			};
+
+			fetch(
+				`${restBase}/wp-json/prc-api/v3/user-accounts/listening-history`,
+				{
+					method: 'DELETE',
+					headers,
+				}
+			).catch(() => {});
+		},
 	},
 	callbacks: {
 		onInit() {
@@ -471,9 +520,11 @@ const { state } = store('prc-spoken-article/player', {
 
 			const ctx = getContext();
 			const { ref } = getElement();
-			blockRoot = ref;
+			setBlockRoot(ref);
 
-			registerMediaSessionHandlers();
+			registerMediaSessionHandlers(ref);
+
+			state.queue = loadQueue();
 
 			const saved = getSavedState();
 			if (!saved || !saved.audioUrl) {
@@ -502,6 +553,27 @@ const { state } = store('prc-spoken-article/player', {
 		},
 
 		/**
+		 * Reactive watcher — fetches listening history once
+		 * the user-accounts store reports a logged-in user.
+		 * Saved articles are fetched and pushed in by the
+		 * prc-user-accounts/saved-articles store.
+		 */
+		onAuthReady() {
+			if (libraryFetched || !state.isUserLoggedIn) {
+				return;
+			}
+			const headers = getUserHeaders();
+			if (!headers) {
+				return;
+			}
+			libraryFetched = true;
+			actions.fetchListeningHistory();
+			if (pendingHistoryEntry) {
+				actions._postHistory(pendingHistoryEntry, headers);
+			}
+		},
+
+		/**
 		 * Reactive watcher on the player block root.
 		 * Fires whenever state.pendingAudio changes.
 		 */
@@ -521,7 +593,6 @@ const { state } = store('prc-spoken-article/player', {
 			ctx.hasTrackedPlay = false;
 			ctx.hasAudio = true;
 
-			// Clear the signal so it doesn't re-trigger.
 			state.pendingAudio = null;
 
 			loadAndPlay(ctx, pending.audioUrl);

@@ -1,29 +1,28 @@
 <?php
 /**
- * Player Trigger Block
+ * Player Add to Queue Block
  *
- * @package PRC\Platform\Blocks
+ * @package PRC\Platform\Spoken_Article
  */
 
 namespace PRC\Platform\Spoken_Article;
 
-use PRC\Platform\Spoken_Article\Post_Meta;
-use PRC\Platform\Spoken_Article\Rest_API;
 use WP_Block;
 use WP_HTML_Tag_Processor;
 
 /**
- * Renders the inline trigger button that opens the spoken article player.
- * Only outputs markup when the current post has spoken article audio.
+ * Renders the add-to-queue button for a spoken article.
+ * Intended for placement inside a content-gate block with allowPassThrough.
+ * Reads post meta for audio context.
  */
-class Player_Trigger_Block {
+class Player_Add_To_Queue_Block {
 
 	/**
 	 * Block name
 	 *
 	 * @var string
 	 */
-	public static $block_name = 'prc-spoken-article/player-trigger';
+	public static $block_name = 'prc-spoken-article/player-add-to-queue';
 
 	/**
 	 * Loader instance
@@ -49,7 +48,7 @@ class Player_Trigger_Block {
 	 */
 	public function register_block() {
 		register_block_type_from_metadata(
-			PRC_SPOKEN_ARTICLE_BLOCKS_DIR . '/player-trigger-block',
+			PRC_SPOKEN_ARTICLE_BLOCKS_DIR . '/player-add-to-queue-block',
 			array(
 				'render_callback' => array( $this, 'render_block_callback' ),
 			)
@@ -57,7 +56,7 @@ class Player_Trigger_Block {
 	}
 
 	/**
-	 * Render callback for the trigger block.
+	 * Render callback for the block.
 	 *
 	 * @param array    $attributes Block attributes.
 	 * @param string   $content Block content.
@@ -65,12 +64,11 @@ class Player_Trigger_Block {
 	 * @return string Rendered block HTML.
 	 */
 	public function render_block_callback( $attributes, $content, $block ) {
-		// @TODO: Right now this is in BETA mode, so we only want to show the block to logged in users.
-		if ( ! is_user_logged_in() ) {
+		if ( is_admin() ) {
 			return '';
 		}
 
-		if ( is_admin() ) {
+		if ( ! is_user_logged_in() ) {
 			return '';
 		}
 
@@ -105,16 +103,17 @@ class Player_Trigger_Block {
 		if ( $tags->next_tag( 'button' ) ) {
 			$tags->set_attribute( 'data-wp-interactive', wp_json_encode( array( 'namespace' => 'prc-spoken-article/player' ) ) );
 			$tags->set_attribute( 'data-wp-context', wp_json_encode( $context ) );
-			$tags->set_attribute( 'data-wp-on--click', 'actions.requestPlay' );
+			$tags->set_attribute( 'data-wp-on--click', 'actions.addToQueue' );
 		}
-		if ( $tags->next_tag( array( 'class_name' => 'spoken-article-trigger__duration' ) ) ) {
-			$tags->set_attribute( 'data-wp-text', 'context.duration' );
+		if ( $tags->next_tag( array( 'class_name' => 'player-add-to-queue__toast' ) ) ) {
+			$tags->set_attribute( 'data-wp-bind--hidden', '!state.queueAddedToast' );
+			$tags->set_attribute( 'data-wp-text', 'state.queueAddedToast' );
 		}
 		$html = $tags->get_updated_html();
 
 		return str_replace(
-			'<span class="prc-icon-placeholder" data-icon="solid/headphones"></span>',
-			\PRC\Platform\Icons\render( 'solid', 'headphones' ),
+			'<span class="prc-icon-placeholder" data-icon="solid/list"></span>',
+			\PRC\Platform\Icons\render( 'solid', 'list' ),
 			$html
 		);
 	}
