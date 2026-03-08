@@ -2,6 +2,7 @@
  * WordPress Dependencies
  */
 import { __ } from '@wordpress/i18n';
+import { useState } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 import { useEntityProp } from '@wordpress/core-data';
 import { store as editorStore } from '@wordpress/editor';
@@ -38,12 +39,17 @@ export default function SidebarPanel() {
 	}, []);
 
 	const [meta, setMeta] = useEntityProp('postType', postType, 'meta');
+	const [targetMinutes, setTargetMinutes] = useState(4);
 
 	const spokenArticle: SpokenArticleMeta = meta?.spoken_article ?? {
 		attachment_id: 0,
 		audio_url: '',
 		duration: '',
 	};
+	const voiceId: string =
+		meta?.spoken_article_voice_id ||
+		window.PRCSpokenArticleAI?.elevenlabs?.voiceId ||
+		'';
 	const playCount: number = meta?.spoken_article_play_count ?? 0;
 	const transcript: string = meta?.spoken_article_transcript ?? '';
 	const transcriptIsDraft: boolean =
@@ -85,6 +91,10 @@ export default function SidebarPanel() {
 			spoken_article_transcript: transcriptText,
 			spoken_article_transcript_is_draft: false,
 		});
+	};
+
+	const handleVoiceChange = (newVoiceId: string) => {
+		setMeta({ ...meta, spoken_article_voice_id: newVoiceId });
 	};
 
 	const handleTranscriptChange = (value: string) => {
@@ -142,6 +152,26 @@ export default function SidebarPanel() {
 				)}
 			</PanelBody>
 
+			<PanelBody
+				title={__('Play Count', 'prc-spoken-article')}
+				initialOpen={true}
+			>
+				<PanelRow>
+					<span>{__('Total plays:', 'prc-spoken-article')}</span>
+					<strong>{playCount.toLocaleString()}</strong>
+				</PanelRow>
+			</PanelBody>
+
+			<PanelBody
+				title={__('Voice', 'prc-spoken-article')}
+				initialOpen={false}
+			>
+				<VoicePicker
+					selectedId={voiceId}
+					onSelect={handleVoiceChange}
+				/>
+			</PanelBody>
+
 			{!!transcript && (
 				<PanelBody
 					title={__('Transcript', 'prc-spoken-article')}
@@ -184,6 +214,25 @@ export default function SidebarPanel() {
 								{__('Characters:', 'prc-spoken-article')}{' '}
 								{transcript.length.toLocaleString()}
 							</Text>
+							{transcriptIsDraft && (
+								<Button
+									variant="secondary"
+									size="small"
+									onClick={() =>
+										window.dispatchEvent(
+											new CustomEvent(
+												'prc-spoken-article:refresh-from-ai'
+											)
+										)
+									}
+									style={{ marginBottom: '8px' }}
+								>
+									{__(
+										'Refresh from AI',
+										'prc-spoken-article'
+									)}
+								</Button>
+							)}
 							<TextareaControl
 								__nextHasNoMarginBottom
 								label={__('Transcript', 'prc-spoken-article')}
@@ -200,23 +249,6 @@ export default function SidebarPanel() {
 			)}
 
 			<PanelBody
-				title={__('Play Count', 'prc-spoken-article')}
-				initialOpen={true}
-			>
-				<PanelRow>
-					<span>{__('Total plays:', 'prc-spoken-article')}</span>
-					<strong>{playCount.toLocaleString()}</strong>
-				</PanelRow>
-			</PanelBody>
-
-			<PanelBody
-				title={__('Voice', 'prc-spoken-article')}
-				initialOpen={false}
-			>
-				<VoicePicker />
-			</PanelBody>
-
-			<PanelBody
 				title={__('AI Generation', 'prc-spoken-article')}
 				initialOpen={!hasAudio}
 			>
@@ -227,6 +259,9 @@ export default function SidebarPanel() {
 					transcriptIsDraft={transcriptIsDraft}
 					setTranscript={handleSetTranscript}
 					onAudioGenerated={handleAudioGenerated}
+					voiceId={voiceId}
+					targetMinutes={targetMinutes}
+					setTargetMinutes={setTargetMinutes}
 				/>
 			</PanelBody>
 		</>

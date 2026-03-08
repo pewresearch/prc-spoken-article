@@ -24,7 +24,12 @@ interface VoicesResponse {
 	has_more: boolean;
 }
 
-export default function VoicePicker() {
+interface VoicePickerProps {
+	selectedId: string;
+	onSelect: (voiceId: string) => void;
+}
+
+export default function VoicePicker({ selectedId, onSelect }: VoicePickerProps) {
 	const config = window.PRCSpokenArticleAI;
 	const apiKey = config?.elevenlabs?.apiKey;
 
@@ -32,9 +37,6 @@ export default function VoicePicker() {
 	const [search, setSearch] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState('');
-	const [selectedId, setSelectedId] = useState(
-		config?.elevenlabs?.voiceId ?? ''
-	);
 	const [playingId, setPlayingId] = useState<string | null>(null);
 
 	const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -113,25 +115,8 @@ export default function VoicePicker() {
 		};
 	}, [search, fetchVoices]);
 
-	const handleSelect = async (voiceId: string) => {
-		setSelectedId(voiceId);
-
-		if (config?.elevenlabs) {
-			config.elevenlabs.voiceId = voiceId;
-		}
-
-		try {
-			await fetch(`${config?.restBase}/voice`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-WP-Nonce': config?.restNonce ?? '',
-				},
-				body: JSON.stringify({ voice_id: voiceId }),
-			});
-		} catch {
-			// Best-effort persistence; in-memory update is immediate.
-		}
+	const handleSelect = (voiceId: string) => {
+		onSelect(voiceId);
 	};
 
 	const handlePreview = (voice: ElevenLabsVoice) => {

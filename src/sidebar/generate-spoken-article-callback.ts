@@ -43,9 +43,14 @@ function errResult(msg: string): AbilityOutput {
  */
 export async function fetchTtsText(
 	config: PRCSpokenArticleConfig,
-	postId: number
+	postId: number,
+	targetMinutes?: number
 ): Promise<TtsTextResult> {
-	const res = await fetch(`${config.restBase}/tts-text/${postId}`, {
+	let url = `${config.restBase}/tts-text/${postId}`;
+	if (targetMinutes) {
+		url += `?target_minutes=${targetMinutes}`;
+	}
+	const res = await fetch(url, {
 		headers: {
 			'X-WP-Nonce': config.restNonce,
 			Accept: 'application/json',

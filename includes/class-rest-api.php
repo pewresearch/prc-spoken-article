@@ -83,6 +83,15 @@ class Rest_API {
 						'type'              => 'integer',
 						'sanitize_callback' => 'absint',
 					),
+					'target_minutes' => array(
+						'type'              => 'number',
+						'default'           => 4,
+						'minimum'           => 1,
+						'maximum'           => 8,
+						'sanitize_callback' => function ( $value ) {
+							return (float) $value;
+						},
+					),
 				),
 			)
 		);
@@ -152,9 +161,10 @@ class Rest_API {
 			);
 		}
 
-		$full_text = $this->get_text_for_tts( $post );
-		$text      = $this->summarize_for_listeners_digest( $full_text, get_the_title( $post ) );
-		$text      = $this->truncate_to_elevenlabs_limit( $text );
+		$target_minutes = (float) $request->get_param( 'target_minutes' );
+		$full_text      = $this->get_text_for_tts( $post );
+		$text           = $this->summarize_for_listeners_digest( $full_text, get_the_title( $post ), $target_minutes );
+		$text           = $this->truncate_to_elevenlabs_limit( $text );
 
 		return rest_ensure_response(
 			array(
@@ -230,25 +240,29 @@ class Rest_API {
 	}
 
 	/**
-	 * Summarize article text into a "Listener's Digest" (~4 min audio).
+	 * Summarize article text into a "Listener's Digest".
 	 *
 	 * Uses the WordPress AI Client to condense the full article into
-	 * approximately 600 words of conversational prose optimized for TTS.
+	 * conversational prose optimized for TTS at the requested duration.
 	 * Falls back to the full text if the AI client is unavailable.
 	 *
-	 * @param string $full_text The full article text.
-	 * @param string $post_title The post title for context.
+	 * @param string $full_text      The full article text.
+	 * @param string $post_title     The post title for context.
+	 * @param float  $target_minutes Target audio length in minutes (1–8, default 4).
 	 * @return string Condensed text for TTS.
 	 */
-	private function summarize_for_listeners_digest( string $full_text, string $post_title ): string {
+	private function summarize_for_listeners_digest( string $full_text, string $post_title, float $target_minutes = 4.0 ): string {
 		if ( ! class_exists( AI_Client::class ) ) {
 			return $full_text;
 		}
 
-		$system = <<<'PROMPT'
+		$target_minutes = max( 1.0, min( 8.0, $target_minutes ) );
+		$word_count     = (int) round( $target_minutes * 150 );
+
+		$system = <<<PROMPT
 You are an expert audio content editor for a research organization. Your job is to create
 a "Listener's Digest" -- a condensed spoken summary of a research article optimized for
-audio consumption. The summary must be no longer than 600 words (approximately 4 minutes
+audio consumption. The summary must be no longer than {$word_count} words (approximately {$target_minutes} minutes
 of audio at natural speaking pace).
 
 Guidelines:

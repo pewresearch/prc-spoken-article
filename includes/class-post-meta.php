@@ -106,6 +106,22 @@ class Post_Meta {
 
 			register_post_meta(
 				$post_type,
+				'spoken_article_voice_id',
+				array(
+					'single'            => true,
+					'type'              => 'string',
+					'description'       => 'ElevenLabs voice ID for this post.',
+					'default'           => '',
+					'show_in_rest'      => true,
+					'sanitize_callback' => 'sanitize_text_field',
+					'auth_callback'     => function () {
+						return current_user_can( 'edit_posts' );
+					},
+				)
+			);
+
+			register_post_meta(
+				$post_type,
 				'spoken_article_transcript_is_draft',
 				array(
 					'single'            => true,
