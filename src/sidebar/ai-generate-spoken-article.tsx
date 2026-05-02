@@ -1,3 +1,4 @@
+/* eslint-disable max-lines, max-lines-per-function -- Large legacy UI; split modal in a follow-up */
 /**
  * External Dependencies
  */
@@ -6,7 +7,7 @@ import { AISuggestButton } from '@prc/components';
 /**
  * WordPress Dependencies
  */
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { useState, useCallback, useRef, useEffect } from '@wordpress/element';
 import {
 	Modal,
@@ -18,7 +19,6 @@ import {
 	Button,
 	__experimentalHStack as HStack,
 	__experimentalVStack as VStack,
-	__experimentalText as Text,
 } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { store as noticesStore } from '@wordpress/notices';
@@ -46,7 +46,6 @@ declare global {
 
 export default function AIGenerateSpokenArticle({
 	spokenArticle,
-	setSpokenArticle,
 	transcript,
 	transcriptIsDraft,
 	setTranscript,
@@ -54,16 +53,23 @@ export default function AIGenerateSpokenArticle({
 	voiceId,
 	targetMinutes,
 	setTargetMinutes,
+	transcriptTargetMinutes,
+	isRemoteLocked,
+	remoteUserName,
+	setGeneratingLock,
 }: {
 	spokenArticle: SpokenArticleMeta;
-	setSpokenArticle: (data: SpokenArticleMeta) => void;
 	transcript: string;
 	transcriptIsDraft: boolean;
-	setTranscript: (text: string, isDraft: boolean) => void;
+	setTranscript: (text: string, isDraft: boolean, atMinutes?: number) => void;
 	onAudioGenerated: (data: SpokenArticleMeta, transcriptText: string) => void;
 	voiceId: string;
 	targetMinutes: number;
 	setTargetMinutes: (val: number) => void;
+	transcriptTargetMinutes: number;
+	isRemoteLocked: boolean;
+	remoteUserName: string;
+	setGeneratingLock: (active: boolean) => void;
 }) {
 	const [isFetchingText, setIsFetchingText] = useState(false);
 	const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
@@ -119,8 +125,14 @@ export default function AIGenerateSpokenArticle({
 			return;
 		}
 
-		// If a draft transcript exists, pre-populate from it without hitting the server.
-		if (transcript && transcriptIsDraft) {
+		// If a draft transcript exists at the same target length, pre-populate from it
+		// without hitting the server. If the user changed target minutes, bypass the
+		// draft and re-fetch from the AI at the new length.
+		if (
+			transcript &&
+			transcriptIsDraft &&
+			targetMinutes === transcriptTargetMinutes
+		) {
 			openModalWithText(transcript, transcript.length, true);
 			return;
 		}
@@ -145,6 +157,15 @@ export default function AIGenerateSpokenArticle({
 				);
 				return;
 			}
+			if (result.wasSummarized === false) {
+				createErrorNotice(
+					__(
+						'AI summarization is unavailable, so the parent post text was loaded as-is. Edit before generating audio. Check the server error log for details.',
+						'prc-spoken-article'
+					),
+					{ type: 'snackbar', isDismissible: true }
+				);
+			}
 			openModalWithText(result.text, result.charCount, false);
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
@@ -161,6 +182,7 @@ export default function AIGenerateSpokenArticle({
 		transcript,
 		transcriptIsDraft,
 		targetMinutes,
+		transcriptTargetMinutes,
 		getConfig,
 		createErrorNotice,
 		openModalWithText,
@@ -190,6 +212,15 @@ export default function AIGenerateSpokenArticle({
 					{ type: 'snackbar', isDismissible: true }
 				);
 				return;
+			}
+			if (result.wasSummarized === false) {
+				createErrorNotice(
+					__(
+						'AI summarization is unavailable, so the parent post text was loaded as-is. Edit before generating audio. Check the server error log for details.',
+						'prc-spoken-article'
+					),
+					{ type: 'snackbar', isDismissible: true }
+				);
 			}
 			setReviewText(result.text);
 			setCharCount(result.charCount);
@@ -232,6 +263,15 @@ export default function AIGenerateSpokenArticle({
 				);
 				return;
 			}
+			if (result.wasSummarized === false) {
+				createErrorNotice(
+					__(
+						'AI summarization is unavailable, so the parent post text was loaded as-is. Edit before generating audio. Check the server error log for details.',
+						'prc-spoken-article'
+					),
+					{ type: 'snackbar', isDismissible: true }
+				);
+			}
 			openModalWithText(result.text, result.charCount, false);
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
@@ -252,7 +292,7 @@ export default function AIGenerateSpokenArticle({
 	]);
 
 	const handleSaveDraft = useCallback(() => {
-		setTranscript(reviewText, true);
+		setTranscript(reviewText, true, targetMinutes);
 		setIsModalOpen(false);
 		createSuccessNotice(
 			__(
@@ -272,8 +312,11 @@ export default function AIGenerateSpokenArticle({
 			return;
 		}
 
+		setGeneratingLock(true);
 		busyRef.current = true;
 		setIsGeneratingAudio(true);
+
+		let clearLockInFinally = true;
 
 		try {
 			const configWithVoice = voiceId
@@ -305,6 +348,10 @@ export default function AIGenerateSpokenArticle({
 					},
 					reviewText
 				);
+				// handleAudioGenerated clears the generation lock in the same
+				// setMeta as spoken_article; skip finally setGeneratingLock so a
+				// second setMeta cannot overwrite new audio with stale meta.
+				clearLockInFinally = false;
 				createSuccessNotice(
 					__(
 						'Spoken article audio generated successfully.',
@@ -321,7 +368,7 @@ export default function AIGenerateSpokenArticle({
 					: __(
 							'An unexpected error occurred while generating audio.',
 							'prc-spoken-article'
-					  );
+						);
 			createErrorNotice(message, {
 				type: 'snackbar',
 				isDismissible: true,
@@ -330,6 +377,9 @@ export default function AIGenerateSpokenArticle({
 		} finally {
 			setIsGeneratingAudio(false);
 			busyRef.current = false;
+			if (clearLockInFinally) {
+				setGeneratingLock(false);
+			}
 		}
 	}, [
 		postId,
@@ -338,6 +388,8 @@ export default function AIGenerateSpokenArticle({
 		onAudioGenerated,
 		createSuccessNotice,
 		createErrorNotice,
+		setGeneratingLock,
+		voiceId,
 	]);
 
 	useEffect(() => {
@@ -380,6 +432,19 @@ export default function AIGenerateSpokenArticle({
 		<div className="ai-generate-spoken-article">
 			{!isGeneratingAudio && (
 				<VStack gap={12}>
+					{isRemoteLocked && (
+						<Notice status="warning" isDismissible={false}>
+							{sprintf(
+								/* translators: %s: another editor's display name */
+								__(
+									'%s is generating spoken article audio. Try again when they finish.',
+									'prc-spoken-article'
+								),
+								remoteUserName ||
+									__('Another editor', 'prc-spoken-article')
+							)}
+						</Notice>
+					)}
 					<RangeControl
 						__nextHasNoMarginBottom
 						label={`${__(
@@ -396,6 +461,7 @@ export default function AIGenerateSpokenArticle({
 					<AISuggestButton
 						onClick={handleFetchText}
 						isLoading={isFetchingText}
+						disabled={isRemoteLocked}
 						text={
 							hasAudio
 								? __('Generate with AI', 'prc-spoken-article')
@@ -528,11 +594,11 @@ export default function AIGenerateSpokenArticle({
 											? __(
 													'Refreshing…',
 													'prc-spoken-article'
-											  )
+												)
 											: __(
 													'Refresh from AI',
 													'prc-spoken-article'
-											  )}
+												)}
 									</Button>
 								)}
 							</HStack>
@@ -572,7 +638,9 @@ export default function AIGenerateSpokenArticle({
 									variant="primary"
 									onClick={handleGenerateAudio}
 									disabled={
-										!reviewText || reviewText.length < 10
+										!reviewText ||
+										reviewText.length < 10 ||
+										isRemoteLocked
 									}
 								>
 									{__('Generate Audio', 'prc-spoken-article')}

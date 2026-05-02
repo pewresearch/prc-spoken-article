@@ -12,8 +12,7 @@ use WP_HTML_Tag_Processor;
 
 /**
  * Renders the add-to-queue button for a spoken article.
- * Intended for placement inside a content-gate block with allowPassThrough.
- * Reads post meta for audio context.
+ * Queries the spoken-article CPT for audio data.
  */
 class Player_Add_To_Queue_Block {
 
@@ -77,16 +76,16 @@ class Player_Add_To_Queue_Block {
 			return '';
 		}
 
-		$spoken = get_post_meta( $post_id, Post_Meta::META_KEY, true );
-		if ( empty( $spoken ) || empty( $spoken['attachment_id'] ) || empty( $spoken['audio_url'] ) ) {
+		$audio = Content_Type::get_audio_for_post( $post_id );
+		if ( ! $audio ) {
 			return '';
 		}
 
-		$audio_url   = $spoken['audio_url'];
-		$duration    = $spoken['duration'] ?? '';
-		$post_title  = get_the_title( $post_id );
-		$post_url    = get_permalink( $post_id );
-		$context     = array(
+		$audio_url  = $audio['audio_url'];
+		$duration   = $audio['duration'] ?? '';
+		$post_title = get_the_title( $post_id );
+		$post_url   = get_permalink( $post_id );
+		$context    = array(
 			'audioUrl'          => esc_url( $audio_url ),
 			'duration'          => sanitize_text_field( $duration ),
 			'postTitle'         => sanitize_text_field( $post_title ),
@@ -94,6 +93,15 @@ class Player_Add_To_Queue_Block {
 			'postId'            => $post_id,
 			'playCountEndpoint' => esc_url( rest_url( Rest_API::NAMESPACE . '/play-count/' . $post_id ) ),
 		);
+
+		$interstitial = Interstitial_Ads::get_interstitial_for_post( $post_id );
+		if ( $interstitial ) {
+			$context['interstitialAudioUrl'] = esc_url( $interstitial['audioUrl'] );
+			$context['interstitialDuration'] = sanitize_text_field( $interstitial['duration'] );
+		} else {
+			$context['interstitialAudioUrl'] = '';
+			$context['interstitialDuration'] = '';
+		}
 
 		if ( empty( trim( $content ) ) ) {
 			return '';

@@ -4,24 +4,19 @@
 	"description": "Audio player block for AI-generated spoken article narration",
 	"license": "GPL-2.0-or-later",
 	"scripts": {
-		"build": "npm run build:blocks && npm run build:sidebar",
-		"build:blocks": "wp-scripts build --source-path=./src/player-block --output-path=./build/player-block --webpack-copy-php --experimental-modules; wp-scripts build --source-path=./src/player-trigger-block --output-path=./build/player-trigger-block --webpack-copy-php --experimental-modules; wp-scripts build --source-path=./src/player-add-to-queue-block --output-path=./build/player-add-to-queue-block --webpack-copy-php --experimental-modules",
-		"build:sidebar": "wp-scripts build --source-path=./src/sidebar --output-path=./build/sidebar --webpack-copy-php",
+		"build": "npm run build:blocks && npm run build:parent-sidebar && npm run build:document-sidebar && npm run build:interstitial-admin",
+		"build:blocks": "wp-scripts build --source-path=./src/player-block --output-path=./build/player-block --webpack-copy-php --experimental-modules && wp-scripts build --source-path=./src/player-trigger-block --output-path=./build/player-trigger-block --webpack-copy-php --experimental-modules && wp-scripts build --source-path=./src/player-add-to-queue-block --output-path=./build/player-add-to-queue-block --webpack-copy-php --experimental-modules",
+		"build:parent-sidebar": "wp-scripts build --source-path=./src/parent-sidebar --output-path=./build/parent-sidebar --webpack-copy-php",
+		"build:document-sidebar": "wp-scripts build --source-path=./src/document-sidebar --output-path=./build/document-sidebar --webpack-copy-php",
+		"build:interstitial-admin": "wp-scripts build --source-path=./src/interstitial-admin --output-path=./build/interstitial-admin",
 		"start": "wp-scripts start --source-path=./src/player-block --output-path=./build/player-block --webpack-copy-php --experimental-modules",
-		"start:sidebar": "wp-scripts start --source-path=./src/sidebar --output-path=./build/sidebar --webpack-copy-php",
-		"test": "wp-scripts test-playwright",
-		"test:clean": "wp-env clean all && wp-env start && wp-scripts test-playwright",
-		"test:env:start": "wp-env start",
-		"test:env:stop": "wp-env stop",
-		"test:env:clean": "wp-env clean all && wp-env start",
-		"test:env:destroy": "wp-env destroy"
+		"start:interstitial-admin": "wp-scripts start --source-path=./src/interstitial-admin --output-path=./build/interstitial-admin",
+		"start:parent-sidebar": "wp-scripts start --source-path=./src/parent-sidebar --output-path=./build/parent-sidebar --webpack-copy-php",
+		"start:document-sidebar": "wp-scripts start --source-path=./src/document-sidebar --output-path=./build/document-sidebar --webpack-copy-php"
 	},
 	"devDependencies": {
-		"@playwright/test": "^1.57.0",
 		"@prc/components": "*",
 		"@prc/icons": "*",
-		"@wordpress/e2e-test-utils-playwright": "^1.36.0",
-		"@wordpress/env": "^10.36.0",
 		"@wordpress/scripts": "^31.6.0"
 	},
 	"dependencies": {

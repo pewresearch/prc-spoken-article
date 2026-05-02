@@ -14,6 +14,7 @@ use WP_Query;
 
 /**
  * Registers and renders a podcast-compatible RSS 2.0 feed for posts with spoken audio.
+ * Queries the spoken-article CPT for audio data.
  */
 class Podcast_Feed {
 
@@ -46,31 +47,40 @@ class Podcast_Feed {
 	 * Render the RSS feed.
 	 */
 	public function render_feed(): void {
-		$query_args = apply_filters(
-			'prc_spoken_article_podcast_query_args',
-			array(
-				'post_type'      => Bootstrap::get_enabled_post_types(),
-				'post_status'    => 'publish',
-				'posts_per_page' => 50,
-				'orderby'        => 'date',
-				'order'          => 'DESC',
-				'meta_query'     => array(
-					array(
-						'key'     => Post_Meta::META_KEY,
-						'compare' => 'EXISTS',
+		$spoken_query = new WP_Query(
+			apply_filters(
+				'prc_spoken_article_podcast_query_args',
+				array(
+					'post_type'      => Content_Type::POST_TYPE,
+					'post_status'    => 'publish',
+					'posts_per_page' => 50,
+					'orderby'        => 'date',
+					'order'          => 'DESC',
+					'meta_query'     => array(
+						array(
+							'key'     => Post_Meta::META_KEY,
+							'compare' => 'EXISTS',
+						),
 					),
-				),
+				)
 			)
 		);
 
-		$query = new WP_Query( $query_args );
 		$posts = array();
-
-		foreach ( $query->posts as $post ) {
-			$spoken = get_post_meta( $post->ID, Post_Meta::META_KEY, true );
-			if ( ! empty( $spoken['audio_url'] ) ) {
-				$posts[] = $post;
+		foreach ( $spoken_query->posts as $spoken_article ) {
+			$audio = get_post_meta( $spoken_article->ID, Post_Meta::META_KEY, true );
+			if ( empty( $audio['audio_url'] ) || ! $spoken_article->post_parent ) {
+				continue;
 			}
+			$parent = get_post( $spoken_article->post_parent );
+			if ( ! $parent || 'publish' !== $parent->post_status ) {
+				continue;
+			}
+			$posts[] = array(
+				'parent'         => $parent,
+				'spoken_article' => $spoken_article,
+				'audio'          => $audio,
+			);
 		}
 
 		$channel = apply_filters(
@@ -81,7 +91,7 @@ class Podcast_Feed {
 				'description' => get_bloginfo( 'description' ),
 				'language'    => get_bloginfo( 'language' ),
 				'author'      => __( 'Pew Research Center', 'prc-spoken-article' ),
-				'image'       => get_site_icon_url( 1400 ) ?: '',
+				'image'       => get_site_icon_url( 1400 ) ? get_site_icon_url( 1400 ) : '',
 				'category'    => 'News',
 				'subcategory' => 'Politics',
 				'explicit'    => 'no',
@@ -91,7 +101,9 @@ class Podcast_Feed {
 		);
 
 		$feed_url = get_feed_link( self::FEED_SLUG );
-		$last_mod = ! empty( $posts ) ? get_post_modified_time( 'D, d M Y H:i:s +0000', true, $posts[0] ) : gmdate( 'D, d M Y H:i:s +0000' );
+		$last_mod = ! empty( $posts )
+			? get_post_modified_time( 'D, d M Y H:i:s +0000', true, $posts[0]['spoken_article'] )
+			: gmdate( 'D, d M Y H:i:s +0000' );
 
 		header( 'Content-Type: application/rss+xml; charset=' . get_option( 'blog_charset' ), true );
 		header( 'Cache-Control: public, max-age=3600', true );
@@ -124,9 +136,9 @@ class Podcast_Feed {
 			<?php endif; ?>
 		</itunes:category>
 		<?php
-		foreach ( $posts as $post ) {
-			$item = $this->build_item_data( $post );
-			$item = apply_filters( 'prc_spoken_article_podcast_item', $item, $post );
+		foreach ( $posts as $entry ) {
+			$item = $this->build_item_data( $entry['parent'], $entry['audio'] );
+			$item = apply_filters( 'prc_spoken_article_podcast_item', $item, $entry['parent'] );
 			if ( empty( $item['audioUrl'] ) ) {
 				continue;
 			}
@@ -141,14 +153,14 @@ class Podcast_Feed {
 	/**
 	 * Build the item data array for a post.
 	 *
-	 * @param WP_Post $post The post object.
+	 * @param WP_Post $post  The parent content post.
+	 * @param array   $audio Audio data from the spoken-article CPT.
 	 * @return array<string, mixed> Item data.
 	 */
-	private function build_item_data( WP_Post $post ): array {
-		$spoken   = get_post_meta( $post->ID, Post_Meta::META_KEY, true );
-		$audio_url = $spoken['audio_url'] ?? '';
-		$duration  = $spoken['duration'] ?? '';
-		$attach_id = (int) ( $spoken['attachment_id'] ?? 0 );
+	private function build_item_data( WP_Post $post, array $audio ): array {
+		$audio_url = $audio['audio_url'] ?? '';
+		$duration  = $audio['duration'] ?? '';
+		$attach_id = (int) ( $audio['attachment_id'] ?? 0 );
 
 		$audio_length = 0;
 		if ( $attach_id > 0 ) {

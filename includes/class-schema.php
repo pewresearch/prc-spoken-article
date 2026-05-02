@@ -5,10 +5,13 @@
  * @package PRC\Platform\Spoken_Article
  */
 
+declare( strict_types=1 );
+
 namespace PRC\Platform\Spoken_Article;
 
 /**
  * Adds AudioObject markup to the post schema via the prc-schema-seo filter.
+ * Queries the spoken-article CPT for audio data.
  */
 class Schema {
 
@@ -22,7 +25,7 @@ class Schema {
 	}
 
 	/**
-	 * Add AudioObject schema to post schema using post meta.
+	 * Add AudioObject schema to post schema.
 	 *
 	 * @hook prc_schema_seo_post_schema
 	 * @param object $schema The schema object (Spatie schema object).
@@ -41,22 +44,22 @@ class Schema {
 			return $schema;
 		}
 
-		$spoken = get_post_meta( $post_id, Post_Meta::META_KEY, true );
-		if ( empty( $spoken ) || empty( $spoken['attachment_id'] ) || empty( $spoken['audio_url'] ) ) {
+		$audio = Content_Type::get_audio_for_post( $post_id );
+		if ( ! $audio ) {
 			return $schema;
 		}
 
 		if ( method_exists( $schema, 'audio' ) ) {
 			$audio_schema = array(
 				'@type'          => 'AudioObject',
-				'contentUrl'     => esc_url( $spoken['audio_url'] ),
+				'contentUrl'     => esc_url( $audio['audio_url'] ),
 				'encodingFormat' => 'audio/mpeg',
 				'name'           => get_the_title( $post_id ),
 				'description'    => __( 'Spoken article narration', 'prc-spoken-article' ),
 			);
 
-			if ( ! empty( $spoken['duration'] ) ) {
-				$audio_schema['duration'] = $this->duration_to_iso8601( $spoken['duration'] );
+			if ( ! empty( $audio['duration'] ) ) {
+				$audio_schema['duration'] = $this->duration_to_iso8601( $audio['duration'] );
 			}
 
 			$schema->audio( $audio_schema );

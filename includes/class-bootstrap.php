@@ -44,12 +44,18 @@ class Bootstrap {
 
 		$this->loader = new Loader();
 
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-content-type.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-post-meta.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-rest-api.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-schema.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-wp-admin.php';
-		require_once plugin_dir_path( __DIR__ ) . 'includes/class-media-library.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-podcast-feed.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-interstitial-ads.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/ai-experiments/class-ai-experiments.php';
+
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			require_once plugin_dir_path( __DIR__ ) . 'includes/class-cli-migrate.php';
+		}
 
 		$dev_mode  = 'local' === wp_get_environment_type();
 		$block_src = $dev_mode ? 'src' : 'build';
@@ -68,7 +74,6 @@ class Bootstrap {
 		if ( file_exists( $add_to_queue_block_path ) ) {
 			require_once $add_to_queue_block_path;
 		}
-
 	}
 
 	/**
@@ -79,15 +84,21 @@ class Bootstrap {
 	private function init_dependencies() {
 		$this->loader->add_action( 'init', $this, 'register_default_post_type_support', 5 );
 
+		new Content_Type( $this->get_loader() );
 		new Post_Meta( $this->get_loader() );
 		new Rest_API( $this->get_loader() );
 		new Schema( $this->get_loader() );
 		new WP_Admin( $this->get_loader() );
-		new Media_Library( $this->get_loader() );
 		new Podcast_Feed( $this->get_loader() );
+		new Interstitial_Ads( $this->get_loader() );
+		new AI_Experiments( $this->get_loader() );
 		new Player_Block( $this->get_loader() );
 		new Player_Trigger_Block( $this->get_loader() );
 		new Player_Add_To_Queue_Block( $this->get_loader() );
+
+		if ( defined( 'WP_CLI' ) && \WP_CLI ) {
+			\WP_CLI::add_command( 'prc spoken-article', new CLI_Migrate() );
+		}
 	}
 
 	/**

@@ -14,7 +14,7 @@ use WP_HTML_Tag_Processor;
 
 /**
  * Renders the inline trigger button that opens the spoken article player.
- * Only outputs markup when the current post has spoken article audio.
+ * Queries the spoken-article CPT for audio data, respects the player-enabled toggle.
  */
 class Player_Trigger_Block {
 
@@ -79,16 +79,26 @@ class Player_Trigger_Block {
 			return '';
 		}
 
-		$spoken = get_post_meta( $post_id, Post_Meta::META_KEY, true );
-		if ( empty( $spoken ) || empty( $spoken['attachment_id'] ) || empty( $spoken['audio_url'] ) ) {
+		$post = get_post( $post_id );
+		if ( ! $post || $post->post_parent > 0 ) {
 			return '';
 		}
 
-		$audio_url   = $spoken['audio_url'];
-		$duration    = $spoken['duration'] ?? '';
-		$post_title  = get_the_title( $post_id );
-		$post_url    = get_permalink( $post_id );
-		$context     = array(
+		$player_enabled = get_post_meta( $post_id, Post_Meta::PLAYER_ENABLED_META_KEY, true );
+		if ( '' !== $player_enabled && ! $player_enabled ) {
+			return '';
+		}
+
+		$audio = Content_Type::get_audio_for_post( $post_id );
+		if ( ! $audio ) {
+			return '';
+		}
+
+		$audio_url  = $audio['audio_url'];
+		$duration   = $audio['duration'] ?? '';
+		$post_title = get_the_title( $post_id );
+		$post_url   = get_permalink( $post_id );
+		$context    = array(
 			'audioUrl'          => esc_url( $audio_url ),
 			'duration'          => sanitize_text_field( $duration ),
 			'postTitle'         => sanitize_text_field( $post_title ),
@@ -96,6 +106,15 @@ class Player_Trigger_Block {
 			'postId'            => $post_id,
 			'playCountEndpoint' => esc_url( rest_url( Rest_API::NAMESPACE . '/play-count/' . $post_id ) ),
 		);
+
+		$interstitial = Interstitial_Ads::get_interstitial_for_post( $post_id );
+		if ( $interstitial ) {
+			$context['interstitialAudioUrl'] = esc_url( $interstitial['audioUrl'] );
+			$context['interstitialDuration'] = sanitize_text_field( $interstitial['duration'] );
+		} else {
+			$context['interstitialAudioUrl'] = '';
+			$context['interstitialDuration'] = '';
+		}
 
 		if ( empty( trim( $content ) ) ) {
 			return '';

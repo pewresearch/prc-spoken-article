@@ -6,20 +6,20 @@ import { useState } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 import { useEntityProp } from '@wordpress/core-data';
 import { store as editorStore } from '@wordpress/editor';
-import {
-	PanelBody,
-	PanelRow,
-	Button,
-	Notice,
-	TextareaControl,
-	__experimentalText as Text,
-} from '@wordpress/components';
+import { PanelBody, PanelRow, Button, Notice } from '@wordpress/components';
 
 /**
  * Internal Dependencies
  */
 import AIGenerateSpokenArticle from './ai-generate-spoken-article';
+import InterstitialPanel from './interstitial-panel';
 import VoicePicker from './voice-picker';
+import {
+	useSpokenArticleGeneratingLock,
+	emptyGeneratingLock,
+	getEditedPostMeta,
+} from './use-spoken-article-generating-lock';
+import SpokenArticleTranscriptPanel from './spoken-article-transcript-panel';
 
 interface SpokenArticleMeta {
 	attachment_id: number;
@@ -39,7 +39,16 @@ export default function SidebarPanel() {
 	}, []);
 
 	const [meta, setMeta] = useEntityProp('postType', postType, 'meta');
-	const [targetMinutes, setTargetMinutes] = useState(4);
+	// Initialize from meta so the value persists across sidebar mounts/reloads.
+	// storedTargetMinutes tracks what target length the saved transcript was generated at.
+	const storedTargetMinutes: number =
+		meta?.spoken_article_target_minutes ?? 4;
+	const [targetMinutes, setTargetMinutes] = useState<number>(
+		() => meta?.spoken_article_target_minutes ?? 4
+	);
+
+	const { isRemoteLocked, remoteUserName, setGeneratingLock } =
+		useSpokenArticleGeneratingLock(meta, setMeta);
 
 	const spokenArticle: SpokenArticleMeta = meta?.spoken_article ?? {
 		attachment_id: 0,
@@ -54,11 +63,17 @@ export default function SidebarPanel() {
 	const transcript: string = meta?.spoken_article_transcript ?? '';
 	const transcriptIsDraft: boolean =
 		meta?.spoken_article_transcript_is_draft ?? false;
-	const hasAudio = !!spokenArticle.attachment_id && !!spokenArticle.audio_url;
-
-	const handleSetSpokenArticle = (data: SpokenArticleMeta) => {
-		setMeta({ ...meta, spoken_article: data });
+	const interstitial = meta?.spoken_article_interstitial ?? {
+		text: '',
+		textIsDraft: false,
+		audioUrl: '',
+		attachmentId: 0,
+		duration: '',
+		voiceId: '',
 	};
+	const interstitialEnabled: boolean =
+		meta?.spoken_article_interstitial_enabled ?? false;
+	const hasAudio = !!spokenArticle.attachment_id && !!spokenArticle.audio_url;
 
 	const handleRemoveAudio = () => {
 		setMeta({
@@ -71,26 +86,46 @@ export default function SidebarPanel() {
 		});
 	};
 
-	const handleSetTranscript = (text: string, isDraft: boolean) => {
+	const handleSetTranscript = (
+		text: string,
+		isDraft: boolean,
+		atMinutes?: number
+	) => {
 		setMeta({
 			...meta,
 			spoken_article_transcript: text,
 			spoken_article_transcript_is_draft: isDraft,
+			...(atMinutes !== undefined
+				? { spoken_article_target_minutes: atMinutes }
+				: {}),
 		});
 	};
 
-	// Single setMeta call for audio generation so the spoken_article and
-	// transcript fields are never overwritten by a stale-meta race.
+	// Single setMeta from fresh store meta so spoken_article, transcript, and
+	// generating-lock clear survive the following setGeneratingLock(false) in finally.
 	const handleAudioGenerated = (
 		data: SpokenArticleMeta,
 		transcriptText: string
 	) => {
+		const currentMeta = getEditedPostMeta();
 		setMeta({
-			...meta,
+			...currentMeta,
 			spoken_article: data,
 			spoken_article_transcript: transcriptText,
 			spoken_article_transcript_is_draft: false,
+			spoken_article_generating: emptyGeneratingLock(),
 		});
+	};
+
+	const handleUpdateInterstitial = (updates: Record<string, unknown>) => {
+		setMeta({
+			...meta,
+			spoken_article_interstitial: { ...interstitial, ...updates },
+		});
+	};
+
+	const handleSetInterstitialEnabled = (enabled: boolean) => {
+		setMeta({ ...meta, spoken_article_interstitial_enabled: enabled });
 	};
 
 	const handleVoiceChange = (newVoiceId: string) => {
@@ -173,79 +208,11 @@ export default function SidebarPanel() {
 			</PanelBody>
 
 			{!!transcript && (
-				<PanelBody
-					title={__('Transcript', 'prc-spoken-article')}
-					initialOpen={transcriptIsDraft}
-				>
-					<PanelRow>
-						<div style={{ width: '100%' }}>
-							{transcriptIsDraft ? (
-								<div style={{ marginBottom: '8px' }}>
-									<Notice
-										status="warning"
-										isDismissible={false}
-									>
-										{__(
-											'Draft transcript — edit below, then generate audio when ready.',
-											'prc-spoken-article'
-										)}
-									</Notice>
-								</div>
-							) : (
-								<div style={{ marginBottom: '8px' }}>
-									<Notice
-										status="success"
-										isDismissible={false}
-									>
-										{__(
-											'Transcript used for the current audio. Regenerate to create a new draft.',
-											'prc-spoken-article'
-										)}
-									</Notice>
-								</div>
-							)}
-							<Text
-								variant="muted"
-								style={{
-									display: 'block',
-									marginBottom: '4px',
-								}}
-							>
-								{__('Characters:', 'prc-spoken-article')}{' '}
-								{transcript.length.toLocaleString()}
-							</Text>
-							{transcriptIsDraft && (
-								<Button
-									variant="secondary"
-									size="small"
-									onClick={() =>
-										window.dispatchEvent(
-											new CustomEvent(
-												'prc-spoken-article:refresh-from-ai'
-											)
-										)
-									}
-									style={{ marginBottom: '8px' }}
-								>
-									{__(
-										'Refresh from AI',
-										'prc-spoken-article'
-									)}
-								</Button>
-							)}
-							<TextareaControl
-								__nextHasNoMarginBottom
-								label={__('Transcript', 'prc-spoken-article')}
-								hideLabelFromVision
-								value={transcript}
-								onChange={handleTranscriptChange}
-								rows={12}
-								disabled={!transcriptIsDraft}
-								style={{ width: '100%' }}
-							/>
-						</div>
-					</PanelRow>
-				</PanelBody>
+				<SpokenArticleTranscriptPanel
+					transcript={transcript}
+					transcriptIsDraft={transcriptIsDraft}
+					onTranscriptChange={handleTranscriptChange}
+				/>
 			)}
 
 			<PanelBody
@@ -254,7 +221,6 @@ export default function SidebarPanel() {
 			>
 				<AIGenerateSpokenArticle
 					spokenArticle={spokenArticle}
-					setSpokenArticle={handleSetSpokenArticle}
 					transcript={transcript}
 					transcriptIsDraft={transcriptIsDraft}
 					setTranscript={handleSetTranscript}
@@ -262,8 +228,22 @@ export default function SidebarPanel() {
 					voiceId={voiceId}
 					targetMinutes={targetMinutes}
 					setTargetMinutes={setTargetMinutes}
+					transcriptTargetMinutes={storedTargetMinutes}
+					isRemoteLocked={isRemoteLocked}
+					remoteUserName={remoteUserName}
+					setGeneratingLock={setGeneratingLock}
 				/>
 			</PanelBody>
+
+			<InterstitialPanel
+				interstitial={interstitial}
+				interstitialEnabled={interstitialEnabled}
+				onUpdateInterstitial={handleUpdateInterstitial}
+				onSetEnabled={handleSetInterstitialEnabled}
+				isRemoteLocked={isRemoteLocked}
+				remoteUserName={remoteUserName}
+				setGeneratingLock={setGeneratingLock}
+			/>
 		</>
 	);
 }

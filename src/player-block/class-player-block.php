@@ -94,8 +94,10 @@ class Player_Block {
 						'currentTime'       => 0,
 						'totalDuration'     => 0,
 						'playbackRate'      => 1,
-						'hasTrackedPlay'    => false,
-						'tabName'           => '',
+					'hasTrackedPlay'        => false,
+					'tabName'               => '',
+					'isPlayingInterstitial' => false,
+					'interstitialLabel'     => Interstitial_Ads::get_label(),
 					)
 				),
 				'data-wp-watch--pending-audio' => 'callbacks.onPendingAudio',
@@ -111,7 +113,7 @@ class Player_Block {
 				data-wp-ref="playerDialog"
 				data-wp-on--close="actions.onDialogClose"
 			>
-				<div class="spoken-article-player" data-wp-class--is-expanded="context.isExpanded">
+				<div class="spoken-article-player" data-wp-class--is-expanded="context.isExpanded" data-wp-class--is-playing-interstitial="context.isPlayingInterstitial">
 					<div class="spoken-article-player__header">
 						<button
 							class="spoken-article-player__resume-btn"
@@ -208,6 +210,7 @@ class Player_Block {
 							<button
 								class="spoken-article-player__skip-btn"
 								data-wp-on--click="actions.skipBack"
+								data-wp-bind--disabled="context.isPlayingInterstitial"
 								aria-label="<?php esc_attr_e( 'Skip back 15 seconds', 'prc-spoken-article' ); ?>"
 							>
 								<?php echo \PRC\Platform\Icons\render( 'solid', 'backward' ); ?>
@@ -228,6 +231,7 @@ class Player_Block {
 							<button
 								class="spoken-article-player__skip-btn"
 								data-wp-on--click="actions.skipForward"
+								data-wp-bind--disabled="context.isPlayingInterstitial"
 								aria-label="<?php esc_attr_e( 'Skip forward 15 seconds', 'prc-spoken-article' ); ?>"
 							>
 								<?php echo \PRC\Platform\Icons\render( 'solid', 'forward' ); ?>

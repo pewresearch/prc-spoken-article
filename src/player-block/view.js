@@ -28,6 +28,8 @@ let restored = false;
 let libraryFetched = false;
 let lastSaveTime = 0;
 let pendingHistoryEntry = null;
+let savedArticleTitle = '';
+let pendingInterstitialAudioUrl = '';
 
 const { state, actions } = store('prc-spoken-article/player', {
 	state: {
@@ -129,6 +131,8 @@ const { state, actions } = store('prc-spoken-article/player', {
 				postId: ctx.postId,
 				duration: ctx.duration,
 				playCountEndpoint: ctx.playCountEndpoint,
+				interstitialAudioUrl: ctx.interstitialAudioUrl || '',
+				interstitialDuration: ctx.interstitialDuration || '',
 			};
 		},
 
@@ -241,6 +245,52 @@ const { state, actions } = store('prc-spoken-article/player', {
 		onEnded() {
 			const context = getContext();
 
+			if (context.isPlayingInterstitial) {
+				context.isPlayingInterstitial = false;
+				context.postTitle = savedArticleTitle;
+				savedArticleTitle = '';
+
+				if (state.queue.length > 0) {
+					const next = state.queue[0];
+					state.queue = state.queue.slice(1);
+					saveQueue(state.queue);
+
+					context.audioUrl = next.audioUrl;
+					context.postTitle = next.postTitle;
+					context.postUrl = next.postUrl;
+					context.postId = next.postId;
+					context.duration = next.duration;
+					context.playCountEndpoint = next.playCountEndpoint;
+					context.hasTrackedPlay = false;
+					context.hasAudio = true;
+
+					pendingInterstitialAudioUrl =
+						next.interstitialAudioUrl || '';
+
+					loadAndPlay(context, next.audioUrl);
+					return;
+				}
+
+				context.isPlaying = false;
+				context.currentTime = 0;
+				clearState();
+				return;
+			}
+
+			if (pendingInterstitialAudioUrl) {
+				savedArticleTitle = context.postTitle;
+				context.postTitle =
+					context.interstitialLabel ||
+					'A message from Pew Research Center';
+				context.isPlayingInterstitial = true;
+
+				const interstitialUrl = pendingInterstitialAudioUrl;
+				pendingInterstitialAudioUrl = '';
+
+				loadAndPlay(context, interstitialUrl);
+				return;
+			}
+
 			if (state.queue.length > 0) {
 				const next = state.queue[0];
 				state.queue = state.queue.slice(1);
@@ -254,6 +304,8 @@ const { state, actions } = store('prc-spoken-article/player', {
 				context.playCountEndpoint = next.playCountEndpoint;
 				context.hasTrackedPlay = false;
 				context.hasAudio = true;
+
+				pendingInterstitialAudioUrl = next.interstitialAudioUrl || '';
 
 				loadAndPlay(context, next.audioUrl);
 				return;
@@ -278,6 +330,9 @@ const { state, actions } = store('prc-spoken-article/player', {
 
 		skipBack() {
 			const context = getContext();
+			if (context.isPlayingInterstitial) {
+				return;
+			}
 			const audio = getAudio();
 			if (!audio) {
 				return;
@@ -288,6 +343,9 @@ const { state, actions } = store('prc-spoken-article/player', {
 
 		skipForward() {
 			const context = getContext();
+			if (context.isPlayingInterstitial) {
+				return;
+			}
 			const audio = getAudio();
 			if (!audio) {
 				return;
@@ -332,6 +390,8 @@ const { state, actions } = store('prc-spoken-article/player', {
 				postId: ctx.postId,
 				duration: ctx.duration,
 				playCountEndpoint: ctx.playCountEndpoint,
+				interstitialAudioUrl: ctx.interstitialAudioUrl || '',
+				interstitialDuration: ctx.interstitialDuration || '',
 			};
 			const alreadyQueued = state.queue.some(
 				(q) => q.postId === item.postId
@@ -379,6 +439,8 @@ const { state, actions } = store('prc-spoken-article/player', {
 				postId: item.postId,
 				duration: item.duration,
 				playCountEndpoint: item.playCountEndpoint,
+				interstitialAudioUrl: item.interstitialAudioUrl || '',
+				interstitialDuration: item.interstitialDuration || '',
 			};
 		},
 
@@ -592,6 +654,8 @@ const { state, actions } = store('prc-spoken-article/player', {
 			ctx.playCountEndpoint = pending.playCountEndpoint;
 			ctx.hasTrackedPlay = false;
 			ctx.hasAudio = true;
+
+			pendingInterstitialAudioUrl = pending.interstitialAudioUrl || '';
 
 			state.pendingAudio = null;
 

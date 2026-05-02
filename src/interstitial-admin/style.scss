@@ -1,0 +1,282 @@
+$gray-100: #f0f0f0;
+$gray-200: #e0e0e0;
+$gray-700: #757575;
+$gray-900: #1e1e1e;
+
+$grid-unit-05: 4px;
+$grid-unit-10: 8px;
+$grid-unit-15: 12px;
+$grid-unit-20: 16px;
+$grid-unit-30: 24px;
+$grid-unit-40: 32px;
+
+$radius-large: 4px;
+
+.interstitial-settings {
+	max-width: min(860px, 100%);
+	margin: 0;
+	padding: $grid-unit-10 0 $grid-unit-30;
+}
+
+.interstitial-settings__header {
+	margin-bottom: $grid-unit-20;
+
+	h1 {
+		margin-bottom: $grid-unit-05;
+		font-size: 22px;
+		line-height: 1.25;
+		font-weight: 500;
+	}
+}
+
+.interstitial-settings__header-description {
+	color: $gray-700;
+	font-size: 13px;
+	line-height: 1.45;
+	max-width: 78ch;
+}
+
+.interstitial-settings__content {
+	margin-top: 0;
+	padding: 0;
+	border-radius: $radius-large;
+}
+
+.interstitial-settings__list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: $grid-unit-15;
+}
+
+.interstitial-settings__list-item {
+	width: 100%;
+	margin: 0 auto;
+}
+
+.interstitial-settings__loading {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-top: $grid-unit-20;
+}
+
+// Accordion
+.interstitial-settings__accordion {
+	margin: 0;
+	padding: 0;
+	border: 1px solid #dcdcde;
+	border-radius: $radius-large;
+	box-shadow: none !important;
+	background: #fff;
+	overflow: hidden;
+
+	&-trigger {
+		display: block;
+		width: 100%;
+		background: none;
+		border: none;
+		padding: $grid-unit-20 $grid-unit-30;
+		margin: 0;
+		cursor: pointer;
+		text-align: left;
+		height: auto;
+
+		&:focus {
+			box-shadow: none !important;
+		}
+
+		&:focus-visible {
+			box-shadow: 0 0 0 var(--wp-admin-border-width-focus)
+				var(--wp-admin-theme-color, #3858e9) !important;
+		}
+	}
+
+	&-chevron-up {
+		transition: transform 0.3s ease-in-out;
+		transform: rotate(180deg);
+		color: #50575e;
+	}
+
+	&-chevron-down {
+		transition: transform 0.3s ease-in-out;
+		transform: rotate(0deg);
+		color: #50575e;
+	}
+
+	.components-card__body {
+		padding: 0;
+	}
+}
+
+.interstitial-settings__accordion-header {
+	color: $gray-900;
+	margin: 0;
+	padding: 0;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.35;
+}
+
+.interstitial-settings__accordion-description {
+	color: $gray-700;
+	margin: 0;
+	padding: 0;
+	font-size: 12px;
+	line-height: 1.45;
+}
+
+.interstitial-settings__accordion-form {
+	margin-top: 0;
+	padding: $grid-unit-20 $grid-unit-30;
+	border-top: 1px solid #f0f0f1;
+}
+
+// Section content wrapper
+.interstitial-settings__section-content {
+	width: 100%;
+}
+
+// Sub-section items (per-ad accordion rows)
+.interstitial-settings__ads-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.interstitial-settings__ads-list-item {
+	margin: 0;
+}
+
+.interstitial-settings__sub-section {
+	padding: 0;
+
+	&:not(:first-child) {
+		border-top: 1px solid #f0f0f1;
+	}
+}
+
+.interstitial-settings__sub-section-trigger {
+	display: block;
+	width: 100%;
+	background: none;
+	border: none;
+	padding: $grid-unit-15 0;
+	margin: 0;
+	cursor: pointer;
+	text-align: left;
+	height: auto;
+
+	&:focus {
+		box-shadow: none !important;
+	}
+
+	&:focus-visible {
+		box-shadow: 0 0 0 var(--wp-admin-border-width-focus)
+			var(--wp-admin-theme-color, #3858e9) !important;
+	}
+}
+
+.interstitial-settings__sub-section-chevron-up {
+	transition: transform 0.3s ease-in-out;
+	transform: rotate(180deg);
+	color: #50575e;
+}
+
+.interstitial-settings__sub-section-chevron-down {
+	transition: transform 0.3s ease-in-out;
+	transform: rotate(0deg);
+	color: #50575e;
+}
+
+.interstitial-settings__sub-section-content {
+	margin-top: 0;
+	padding: 0 0 $grid-unit-20;
+}
+
+// Ad status badge
+.interstitial-settings__ad-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px $grid-unit-10;
+	border-radius: 2px;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.4;
+
+	&--active {
+		background: #edfaef;
+		color: #1a7526;
+	}
+
+	&--inactive {
+		background: $gray-100;
+		color: $gray-700;
+	}
+}
+
+// Ad form
+.interstitial-settings__ad-form {
+	width: 100%;
+}
+
+.interstitial-settings__ad-form-row {
+	flex-wrap: wrap;
+}
+
+.interstitial-settings__char-count {
+	margin-top: $grid-unit-05;
+	font-size: 12px;
+}
+
+// Actions row (add new / save all)
+.interstitial-settings__ads-actions {
+	padding-top: $grid-unit-15;
+	border-top: 1px solid #f0f0f1;
+}
+
+// Empty state
+.interstitial-settings__empty {
+	font-style: italic;
+}
+
+// Audio controls
+.interstitial-settings__audio-preview {
+	display: flex;
+	flex-direction: column;
+	gap: $grid-unit-10;
+}
+
+.interstitial-settings__audio-preview-label {
+	font-size: 13px;
+}
+
+.interstitial-settings__audio-player {
+	width: 100%;
+}
+
+.interstitial-settings__audio-meta {
+	flex-wrap: wrap;
+}
+
+.interstitial-settings__audio-actions {
+	display: flex;
+	flex-direction: column;
+	gap: $grid-unit-10;
+}
+
+.interstitial-settings__audio-buttons {
+	flex-wrap: wrap;
+}
+
+.interstitial-settings__audio-error {
+	font-size: 13px;
+}
+
+// Voice picker popover
+.interstitial-settings__voice-picker-popover {
+	padding: $grid-unit-15;
+	width: 360px;
+}
