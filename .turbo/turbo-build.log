@@ -7,103 +7,103 @@
 > wp-scripts build --source-path=./src/player-block --output-path=./build/player-block --webpack-copy-php --experimental-modules && wp-scripts build --source-path=./src/player-trigger-block --output-path=./build/player-trigger-block --webpack-copy-php --experimental-modules && wp-scripts build --source-path=./src/player-add-to-queue-block --output-path=./build/player-add-to-queue-block --webpack-copy-php --experimental-modules
 
 assets by chunk 2.7 KiB (name: index)
-  assets by path [1m[32m*.css[39m[22m 2 bytes
-    asset [1m[32mindex-rtl.css[39m[22m 1 bytes [1m[32m[emitted][39m[22m (name: index)
-    asset [1m[32mindex.css[39m[22m 1 bytes [1m[32m[emitted][39m[22m (name: index)
-  asset [1m[32mindex.js[39m[22m 2.5 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: index)
-  asset [1m[32mindex.asset.php[39m[22m 194 bytes [1m[32m[emitted][39m[22m (name: index)
-assets by path [1m[32m./*.css[39m[22m 24.9 KiB
-  asset [1m[32m./style-index-rtl.css[39m[22m 12.5 KiB [1m[32m[emitted][39m[22m (name: ./style-index) (id hint: style)
-  asset [1m[32m./style-index.css[39m[22m 12.5 KiB [1m[32m[emitted][39m[22m (name: ./style-index) (id hint: style)
-asset [1m[32mclass-player-block.php[39m[22m 15.9 KiB [1m[32m[emitted][39m[22m [from: src/player-block/class-player-block.php] [1m[32m[copied][39m[22m
-asset [1m[32mblock.json[39m[22m 761 bytes [1m[32m[emitted][39m[22m [from: src/player-block/block.json] [1m[32m[copied][39m[22m
-Entrypoint [1mindex[39m[22m 27.6 KiB = 6 assets
-orphan modules 255 KiB (javascript) 1.83 KiB (runtime) [1m[33m[orphan][39m[22m 357 modules
+  assets by path *.css 2 bytes
+    asset index-rtl.css 1 bytes [compared for emit] (name: index)
+    asset index.css 1 bytes [compared for emit] (name: index)
+  asset index.js 2.5 KiB [compared for emit] [minimized] (name: index)
+  asset index.asset.php 194 bytes [compared for emit] (name: index)
+assets by path ./*.css 24.9 KiB
+  asset ./style-index-rtl.css 12.5 KiB [compared for emit] (name: ./style-index) (id hint: style)
+  asset ./style-index.css 12.5 KiB [compared for emit] (name: ./style-index) (id hint: style)
+asset class-player-block.php 15.9 KiB [compared for emit] [from: src/player-block/class-player-block.php] [copied]
+asset block.json 761 bytes [compared for emit] [from: src/player-block/block.json] [copied]
+Entrypoint index 27.6 KiB = 6 assets
+orphan modules 255 KiB (javascript) 1.83 KiB (runtime) [orphan] 357 modules
 runtime modules 2.51 KiB 3 modules
-built modules 3.03 KiB (javascript) 12.5 KiB (css/mini-extract) [1m[33m[built][39m[22m
-  [1m./src/player-block/index.js + 11 modules[39m[22m 3.03 KiB [1m[31m[not cacheable][39m[22m [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-  css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]![1m./src/player-block/editor.scss[39m[22m 0 bytes [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-  css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]![1m./src/player-block/style.scss[39m[22m 12.5 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 14956 ms
+built modules 3.03 KiB (javascript) 12.5 KiB (css/mini-extract) [built]
+  ./src/player-block/index.js + 11 modules 3.03 KiB [not cacheable] [built] [code generated]
+  css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]!./src/player-block/editor.scss 0 bytes [built] [code generated]
+  css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]!./src/player-block/style.scss 12.5 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 3303 ms
 
-asset [1m[32mview.js[39m[22m 10.9 KiB [1m[32m[emitted][39m[22m [javascript module] [1m[32m[minimized][39m[22m (name: view)
-asset [1m[32mview.asset.php[39m[22m 130 bytes [1m[32m[emitted][39m[22m (name: view)
-Entrypoint [1mview[39m[22m 11 KiB = [1m[32mview.js[39m[22m 10.9 KiB [1m[32mview.asset.php[39m[22m 130 bytes
-orphan modules 6.62 KiB [1m[33m[orphan][39m[22m 6 modules
-[1m./src/player-block/view.js + 6 modules[39m[22m 22.8 KiB [1m[31m[not cacheable][39m[22m [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 9028 ms
+asset view.js 10.9 KiB [compared for emit] [javascript module] [minimized] (name: view)
+asset view.asset.php 130 bytes [compared for emit] (name: view)
+Entrypoint view 11 KiB = view.js 10.9 KiB view.asset.php 130 bytes
+orphan modules 6.62 KiB [orphan] 6 modules
+./src/player-block/view.js + 6 modules 22.8 KiB [not cacheable] [built] [code generated]
+webpack 5.106.2 compiled successfully in 2132 ms
 assets by chunk 4.15 KiB (name: index)
-  assets by path [1m[32m*.css[39m[22m 2 bytes
-    asset [1m[32mindex-rtl.css[39m[22m 1 bytes [1m[32m[emitted][39m[22m (name: index)
-    asset [1m[32mindex.css[39m[22m 1 bytes [1m[32m[emitted][39m[22m (name: index)
-  asset [1m[32mindex.js[39m[22m 3.95 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: index)
-  asset [1m[32mindex.asset.php[39m[22m 200 bytes [1m[32m[emitted][39m[22m (name: index)
-assets by path [1m[32m./*.css[39m[22m 1.3 KiB
-  asset [1m[32m./style-index-rtl.css[39m[22m 666 bytes [1m[32m[emitted][39m[22m (name: ./style-index) (id hint: style)
-  asset [1m[32m./style-index.css[39m[22m 666 bytes [1m[32m[emitted][39m[22m (name: ./style-index) (id hint: style)
-asset [1m[32mclass-player-trigger-block.php[39m[22m 3.73 KiB [1m[32m[emitted][39m[22m [from: src/player-trigger-block/class-player-trigger-block.php] [1m[32m[copied][39m[22m
-asset [1m[32mblock.json[39m[22m 1.33 KiB [1m[32m[emitted][39m[22m [from: src/player-trigger-block/block.json] [1m[32m[copied][39m[22m
-Entrypoint [1mindex[39m[22m 5.45 KiB = 6 assets
-orphan modules 245 KiB (javascript) 1.83 KiB (runtime) [1m[33m[orphan][39m[22m 360 modules
+  assets by path *.css 2 bytes
+    asset index-rtl.css 1 bytes [compared for emit] (name: index)
+    asset index.css 1 bytes [compared for emit] (name: index)
+  asset index.js 3.95 KiB [compared for emit] [minimized] (name: index)
+  asset index.asset.php 200 bytes [compared for emit] (name: index)
+assets by path ./*.css 1.3 KiB
+  asset ./style-index-rtl.css 666 bytes [compared for emit] (name: ./style-index) (id hint: style)
+  asset ./style-index.css 666 bytes [compared for emit] (name: ./style-index) (id hint: style)
+asset class-player-trigger-block.php 3.73 KiB [compared for emit] [from: src/player-trigger-block/class-player-trigger-block.php] [copied]
+asset block.json 1.33 KiB [compared for emit] [from: src/player-trigger-block/block.json] [copied]
+Entrypoint index 5.45 KiB = 6 assets
+orphan modules 245 KiB (javascript) 1.83 KiB (runtime) [orphan] 360 modules
 runtime modules 2.51 KiB 3 modules
-built modules 5.12 KiB (javascript) 665 bytes (css/mini-extract) [1m[33m[built][39m[22m
-  [1m./src/player-trigger-block/index.js + 12 modules[39m[22m 5.12 KiB [1m[31m[not cacheable][39m[22m [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-  css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]![1m./src/player-trigger-block/editor.scss[39m[22m 0 bytes [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-  css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]![1m./src/player-trigger-block/style.scss[39m[22m 665 bytes [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 12787 ms
+built modules 5.12 KiB (javascript) 665 bytes (css/mini-extract) [built]
+  ./src/player-trigger-block/index.js + 12 modules 5.12 KiB [not cacheable] [built] [code generated]
+  css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]!./src/player-trigger-block/editor.scss 0 bytes [built] [code generated]
+  css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]!./src/player-trigger-block/style.scss 665 bytes [built] [code generated]
+webpack 5.106.2 compiled successfully in 2887 ms
 
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 369 ms
-assets by path [1m[32m*.php[39m[22m 3.48 KiB
-  asset [1m[32mclass-player-add-to-queue-block.php[39m[22m 3.32 KiB [1m[32m[emitted][39m[22m [from: src/player-add-to-queue-block/class-player-add-to-queue-block.php] [1m[32m[copied][39m[22m
-  asset [1m[32mindex.asset.php[39m[22m 162 bytes [1m[32m[emitted][39m[22m (name: index)
-assets by path [1m[32m./*.css[39m[22m 2.59 KiB
-  asset [1m[32m./style-index-rtl.css[39m[22m 1.3 KiB [1m[32m[emitted][39m[22m (name: ./style-index) (id hint: style)
-  asset [1m[32m./style-index.css[39m[22m 1.3 KiB [1m[32m[emitted][39m[22m (name: ./style-index) (id hint: style)
-asset [1m[32mindex.js[39m[22m 2.54 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: index)
-asset [1m[32mblock.json[39m[22m 1.25 KiB [1m[32m[emitted][39m[22m [from: src/player-add-to-queue-block/block.json] [1m[32m[copied][39m[22m
-Entrypoint [1mindex[39m[22m 5.29 KiB = [1m[32m./style-index.css[39m[22m 1.3 KiB [1m[32m./style-index-rtl.css[39m[22m 1.3 KiB [1m[32mindex.js[39m[22m 2.54 KiB [1m[32mindex.asset.php[39m[22m 162 bytes
-orphan modules 5.79 KiB (javascript) 937 bytes (runtime) [1m[33m[orphan][39m[22m 15 modules
+webpack 5.106.2 compiled successfully in 61 ms
+assets by path *.php 3.48 KiB
+  asset class-player-add-to-queue-block.php 3.32 KiB [compared for emit] [from: src/player-add-to-queue-block/class-player-add-to-queue-block.php] [copied]
+  asset index.asset.php 162 bytes [compared for emit] (name: index)
+assets by path ./*.css 2.59 KiB
+  asset ./style-index-rtl.css 1.3 KiB [compared for emit] (name: ./style-index) (id hint: style)
+  asset ./style-index.css 1.3 KiB [compared for emit] (name: ./style-index) (id hint: style)
+asset index.js 2.54 KiB [compared for emit] [minimized] (name: index)
+asset block.json 1.25 KiB [compared for emit] [from: src/player-add-to-queue-block/block.json] [copied]
+Entrypoint index 5.29 KiB = ./style-index.css 1.3 KiB ./style-index-rtl.css 1.3 KiB index.js 2.54 KiB index.asset.php 162 bytes
+orphan modules 5.79 KiB (javascript) 937 bytes (runtime) [orphan] 15 modules
 runtime modules 2.51 KiB 3 modules
-built modules 3.95 KiB (javascript) 1.3 KiB (css/mini-extract) [1m[33m[built][39m[22m
-  [1m./src/player-add-to-queue-block/index.js + 7 modules[39m[22m 3.95 KiB [1m[31m[not cacheable][39m[22m [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-  css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]![1m./src/player-add-to-queue-block/style.scss[39m[22m 1.3 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 8649 ms
+built modules 3.95 KiB (javascript) 1.3 KiB (css/mini-extract) [built]
+  ./src/player-add-to-queue-block/index.js + 7 modules 3.95 KiB [not cacheable] [built] [code generated]
+  css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]!./src/player-add-to-queue-block/style.scss 1.3 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 2403 ms
 
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 164 ms
+webpack 5.106.2 compiled successfully in 56 ms
 
 > @prc/spoken-article@1.0.0 build:parent-sidebar
 > wp-scripts build --source-path=./src/parent-sidebar --output-path=./build/parent-sidebar --webpack-copy-php
 
-asset [1m[32mindex.js[39m[22m 5.14 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: index)
-asset [1m[32mindex.asset.php[39m[22m 199 bytes [1m[32m[emitted][39m[22m (name: index)
-Entrypoint [1mindex[39m[22m 5.34 KiB = [1m[32mindex.js[39m[22m 5.14 KiB [1m[32mindex.asset.php[39m[22m 199 bytes
-orphan modules 8.38 KiB [1m[33m[orphan][39m[22m 10 modules
-[1m./src/parent-sidebar/index.tsx + 10 modules[39m[22m 9.98 KiB [1m[31m[not cacheable][39m[22m [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 7911 ms
+asset index.js 5.14 KiB [compared for emit] [minimized] (name: index)
+asset index.asset.php 199 bytes [compared for emit] (name: index)
+Entrypoint index 5.34 KiB = index.js 5.14 KiB index.asset.php 199 bytes
+orphan modules 8.38 KiB [orphan] 10 modules
+./src/parent-sidebar/index.tsx + 10 modules 9.98 KiB [not cacheable] [built] [code generated]
+webpack 5.106.2 compiled successfully in 2300 ms
 
 > @prc/spoken-article@1.0.0 build:document-sidebar
 > wp-scripts build --source-path=./src/document-sidebar --output-path=./build/document-sidebar --webpack-copy-php
 
-asset [1m[32mindex.js[39m[22m 22.7 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: index)
-asset [1m[32mindex.asset.php[39m[22m 278 bytes [1m[32m[emitted][39m[22m (name: index)
-Entrypoint [1mindex[39m[22m 23 KiB = [1m[32mindex.js[39m[22m 22.7 KiB [1m[32mindex.asset.php[39m[22m 278 bytes
-orphan modules 41.7 KiB [1m[33m[orphan][39m[22m 23 modules
-[1m./src/document-sidebar/index.tsx + 23 modules[39m[22m 47 KiB [1m[31m[not cacheable][39m[22m [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 8560 ms
+asset index.js 22.7 KiB [compared for emit] [minimized] (name: index)
+asset index.asset.php 278 bytes [compared for emit] (name: index)
+Entrypoint index 23 KiB = index.js 22.7 KiB index.asset.php 278 bytes
+orphan modules 41.7 KiB [orphan] 23 modules
+./src/document-sidebar/index.tsx + 23 modules 47 KiB [not cacheable] [built] [code generated]
+webpack 5.106.2 compiled successfully in 2086 ms
 
 > @prc/spoken-article@1.0.0 build:interstitial-admin
 > wp-scripts build --source-path=./src/interstitial-admin --output-path=./build/interstitial-admin
 
-assets by chunk 19.4 KiB (name: index)
-  asset [1m[32mindex.js[39m[22m 19.2 KiB [1m[32m[emitted][39m[22m [1m[32m[minimized][39m[22m (name: index)
-  asset [1m[32mindex.asset.php[39m[22m 203 bytes [1m[32m[emitted][39m[22m (name: index)
-assets by path [1m[32m./*.css[39m[22m 7.74 KiB
-  asset [1m[32m./style-index-rtl.css[39m[22m 3.87 KiB [1m[32m[emitted][39m[22m (name: ./style-index) (id hint: style)
-  asset [1m[32m./style-index.css[39m[22m 3.87 KiB [1m[32m[emitted][39m[22m (name: ./style-index) (id hint: style)
-Entrypoint [1mindex[39m[22m 27.2 KiB = [1m[32m./style-index.css[39m[22m 3.87 KiB [1m[32m./style-index-rtl.css[39m[22m 3.87 KiB [1m[32mindex.js[39m[22m 19.2 KiB [1m[32mindex.asset.php[39m[22m 203 bytes
-orphan modules 279 KiB (javascript) 937 bytes (runtime) [1m[33m[orphan][39m[22m 361 modules
+assets by status 19.4 KiB [compared for emit]
+  asset index.js 19.2 KiB [compared for emit] [minimized] (name: index)
+  asset index.asset.php 203 bytes [compared for emit] (name: index)
+assets by status 7.74 KiB [emitted]
+  asset ./style-index-rtl.css 3.87 KiB [emitted] (name: ./style-index) (id hint: style)
+  asset ./style-index.css 3.87 KiB [emitted] (name: ./style-index) (id hint: style)
+Entrypoint index 27.2 KiB = ./style-index.css 3.87 KiB ./style-index-rtl.css 3.87 KiB index.js 19.2 KiB index.asset.php 203 bytes
+orphan modules 279 KiB (javascript) 937 bytes (runtime) [orphan] 361 modules
 runtime modules 3.07 KiB 5 modules
-built modules 35.5 KiB (javascript) 3.87 KiB (css/mini-extract) [1m[33m[built][39m[22m
-  [1m./src/interstitial-admin/index.tsx + 20 modules[39m[22m 35.5 KiB [1m[31m[not cacheable][39m[22m [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-  css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]![1m./src/interstitial-admin/style.scss[39m[22m 3.87 KiB [1m[33m[built][39m[22m [1m[33m[code generated][39m[22m
-webpack 5.106.2 compiled [1m[32msuccessfully[39m[22m in 21588 ms
+built modules 35.5 KiB (javascript) 3.87 KiB (css/mini-extract) [built]
+  ./src/interstitial-admin/index.tsx + 20 modules 35.5 KiB [not cacheable] [built] [code generated]
+  css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]!./src/interstitial-admin/style.scss 3.87 KiB [built] [code generated]
+webpack 5.106.2 compiled successfully in 5167 ms
