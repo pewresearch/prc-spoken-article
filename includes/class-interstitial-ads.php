@@ -238,10 +238,15 @@ class Interstitial_Ads {
 		);
 
 		if ( file_exists( PRC_SPOKEN_ARTICLE_DIR . '/build/interstitial-admin/style-index.css' ) ) {
+			$style_deps = array( 'wp-components' );
+			if ( in_array( 'prc-components', $asset['dependencies'], true ) ) {
+				$style_deps[] = 'prc-components';
+			}
+
 			wp_enqueue_style(
 				$handle,
 				plugins_url( 'build/interstitial-admin/style-index.css', PRC_SPOKEN_ARTICLE_FILE ),
-				array( 'wp-components' ),
+				$style_deps,
 				$asset['version']
 			);
 		}
