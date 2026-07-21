@@ -3,12 +3,14 @@ import { __ } from '@wordpress/i18n';
 import {
 	Button,
 	Icon,
+	TextControl,
 	__experimentalVStack as VStack,
 	__experimentalHStack as HStack,
 	__experimentalText as Text,
 } from '@wordpress/components';
 import { chevronDown } from '@wordpress/icons';
 import { useSelect, useDispatch } from '@wordpress/data';
+import { SettingsSectionFooter } from '@prc/components';
 
 import { store as interstitialsStore } from '../store';
 import { saveInterstitials } from '../api';
@@ -36,10 +38,15 @@ function emptyAd(): InterstitialAd {
 
 export default function InterstitialAdsSection() {
 	const ads = useSelect((select) => select(interstitialsStore).getAds(), []);
-	const { addAd, deleteAd } = useDispatch(interstitialsStore);
+	const playerLabel = useSelect(
+		(select) => select(interstitialsStore).getSettings().label,
+		[]
+	);
+	const { addAd, deleteAd, applyPatch } = useDispatch(interstitialsStore);
 
 	const [openAdId, setOpenAdId] = useState<string | null>(null);
 	const [isSaving, setIsSaving] = useState(false);
+	const [saveError, setSaveError] = useState<string | null>(null);
 
 	const handleAddNew = () => {
 		const ad = emptyAd();
@@ -49,8 +56,21 @@ export default function InterstitialAdsSection() {
 
 	const handleSaveAll = async () => {
 		setIsSaving(true);
-		await saveInterstitials();
-		setIsSaving(false);
+		setSaveError(null);
+		try {
+			await saveInterstitials();
+		} catch (error) {
+			setSaveError(
+				error instanceof Error
+					? error.message
+					: __(
+							'Failed to save interstitial settings.',
+							'prc-spoken-article'
+						)
+			);
+		} finally {
+			setIsSaving(false);
+		}
 	};
 
 	const toggleAd = (id: string) => {
@@ -59,6 +79,20 @@ export default function InterstitialAdsSection() {
 
 	return (
 		<VStack spacing={4} className="interstitial-settings__section-content">
+			<div className="interstitial-settings__player-label">
+				<TextControl
+					__next40pxDefaultSize
+					__nextHasNoMarginBottom
+					label={__('Player Display Label', 'prc-spoken-article')}
+					help={__(
+						'Shown in the audio player when an interstitial plays.',
+						'prc-spoken-article'
+					)}
+					value={playerLabel}
+					onChange={(label) => applyPatch({ label })}
+				/>
+			</div>
+
 			{ads.length === 0 ? (
 				<Text className="interstitial-settings__empty" variant="muted">
 					{__(
@@ -67,7 +101,7 @@ export default function InterstitialAdsSection() {
 					)}
 				</Text>
 			) : (
-				<ul className="interstitial-settings__ads-list" role="list">
+				<ul className="interstitial-settings__ads-list">
 					{ads.map((ad: InterstitialAd) => {
 						const isOpen = openAdId === ad.id;
 						const contentId = `interstitial-ad-${ad.id}-content`;
@@ -114,11 +148,11 @@ export default function InterstitialAdsSection() {
 															? __(
 																	'Active',
 																	'prc-spoken-article'
-															  )
+																)
 															: __(
 																	'Inactive',
 																	'prc-spoken-article'
-															  )}
+																)}
 													</span>
 													<Button
 														variant="tertiary"
@@ -171,23 +205,21 @@ export default function InterstitialAdsSection() {
 				</ul>
 			)}
 
-			<HStack
-				spacing={3}
-				justify="flex-start"
-				className="interstitial-settings__ads-actions"
-			>
-				<Button variant="secondary" onClick={handleAddNew}>
-					{__('Add New Interstitial', 'prc-spoken-article')}
-				</Button>
-				<Button
-					variant="primary"
-					onClick={handleSaveAll}
+			<div className="interstitial-settings__ads-actions">
+				<HStack spacing={3} justify="flex-start">
+					<Button variant="secondary" onClick={handleAddNew}>
+						{__('Add New Interstitial', 'prc-spoken-article')}
+					</Button>
+				</HStack>
+				<SettingsSectionFooter
+					saveLabel={__('Save All', 'prc-spoken-article')}
+					savingLabel={__('Saving…', 'prc-spoken-article')}
 					isBusy={isSaving}
-					disabled={isSaving}
-				>
-					{__('Save All', 'prc-spoken-article')}
-				</Button>
-			</HStack>
+					error={saveError}
+					onDismissError={() => setSaveError(null)}
+					onSave={handleSaveAll}
+				/>
+			</div>
 		</VStack>
 	);
 }

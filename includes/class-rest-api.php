@@ -24,6 +24,7 @@ class Rest_API {
 	 */
 	public function __construct( $loader ) {
 		$loader->add_action( 'rest_api_init', $this, 'register_routes' );
+		$loader->add_filter( 'rest_pre_serve_request', $this, 'serve_tts_binary', 10, 4 );
 	}
 
 	/**
@@ -63,6 +64,96 @@ class Rest_API {
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/elevenlabs/voices',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'list_elevenlabs_voices' ),
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+				'args'                => array(
+					'search'         => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'page_size'      => array(
+						'type'              => 'integer',
+						'default'           => 30,
+						'sanitize_callback' => 'absint',
+					),
+					'sort'           => array(
+						'type'              => 'string',
+						'default'           => 'name',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'sort_direction' => array(
+						'type'              => 'string',
+						'default'           => 'asc',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'refresh'        => array(
+						'type'    => 'boolean',
+						'default' => false,
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/elevenlabs/voices/(?P<voice_id>[a-zA-Z0-9_-]+)',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_elevenlabs_voice' ),
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+				'args'                => array(
+					'voice_id' => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'refresh'  => array(
+						'type'    => 'boolean',
+						'default' => false,
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/elevenlabs/tts',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'elevenlabs_tts' ),
+				'permission_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+				'args'                => array(
+					'text'           => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_textarea_field',
+					),
+					'voice_id'       => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'model_id'       => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'voice_settings' => array(
+						'type' => 'object',
 					),
 				),
 			)
@@ -201,9 +292,123 @@ class Rest_API {
 	 * @return \WP_REST_Response
 	 */
 	public function save_voice_selection( $request ) {
-		$voice_id = $request->get_param( 'voice_id' );
-		update_option( 'elevenlabs_voice_id', $voice_id );
+		$voice_id = Voice::save_default_voice_id( (string) $request->get_param( 'voice_id' ) );
 		return rest_ensure_response( array( 'voice_id' => $voice_id ) );
+	}
+
+	/**
+	 * List ElevenLabs voices (proxied; cached in Voice).
+	 *
+	 * @param \WP_REST_Request $request Request object.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function list_elevenlabs_voices( $request ) {
+		$refresh = (bool) $request->get_param( 'refresh' );
+		if ( $refresh && ! current_user_can( 'manage_options' ) ) {
+			$refresh = false;
+		}
+
+		$result = Voice::list_voices(
+			array(
+				'search'         => $request->get_param( 'search' ),
+				'page_size'      => $request->get_param( 'page_size' ),
+				'sort'           => $request->get_param( 'sort' ),
+				'sort_direction' => $request->get_param( 'sort_direction' ),
+			),
+			$refresh
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Get a single ElevenLabs voice (proxied; cached in Voice).
+	 *
+	 * @param \WP_REST_Request $request Request object.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function get_elevenlabs_voice( $request ) {
+		$refresh = (bool) $request->get_param( 'refresh' );
+		if ( $refresh && ! current_user_can( 'manage_options' ) ) {
+			$refresh = false;
+		}
+
+		$result = Voice::get_voice( (string) $request->get_param( 'voice_id' ), $refresh );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Proxy TTS to ElevenLabs; returns raw audio/mpeg (served via serve_tts_binary).
+	 *
+	 * @param \WP_REST_Request $request Request object.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function elevenlabs_tts( $request ) {
+		$voice_settings = $request->get_param( 'voice_settings' );
+		if ( ! is_array( $voice_settings ) ) {
+			$voice_settings = array();
+		}
+
+		$audio = ElevenLabs_TTS::synthesize(
+			(string) $request->get_param( 'text' ),
+			(string) ( $request->get_param( 'voice_id' ) ?: Voice::get_default_voice_id() ),
+			(string) ( $request->get_param( 'model_id' ) ?: ElevenLabs_Settings::get_production_model() ),
+			$voice_settings
+		);
+
+		if ( is_wp_error( $audio ) ) {
+			return $audio;
+		}
+
+		$response = new \WP_REST_Response( $audio, 200 );
+		$response->header( 'Content-Type', 'audio/mpeg' );
+		$response->header( 'Content-Disposition', 'inline; filename="spoken-article-tts.mp3"' );
+		return $response;
+	}
+
+	/**
+	 * Serve raw MP3 bytes for the TTS proxy instead of JSON-encoding the body.
+	 *
+	 * @param bool             $served  Whether the request has already been served.
+	 * @param \WP_HTTP_Response $result  Result to send to the client.
+	 * @param \WP_REST_Request  $request Request used to generate the response.
+	 * @param \WP_REST_Server   $server  Server instance.
+	 * @return bool
+	 */
+	public function serve_tts_binary( $served, $result, $request, $server ) {
+		if ( $served || ! $result instanceof \WP_REST_Response ) {
+			return $served;
+		}
+
+		$route = $request->get_route();
+		if ( ! is_string( $route ) || ! str_ends_with( $route, '/elevenlabs/tts' ) ) {
+			return $served;
+		}
+
+		$data = $result->get_data();
+		if ( ! is_string( $data ) || '' === $data ) {
+			return $served;
+		}
+
+		foreach ( $result->get_headers() as $key => $values ) {
+			foreach ( (array) $values as $value ) {
+				header( sprintf( '%s: %s', $key, $value ) );
+			}
+		}
+
+		status_header( $result->get_status() );
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- binary audio
+		echo $data;
+		return true;
 	}
 
 	/**

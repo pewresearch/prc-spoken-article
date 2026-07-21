@@ -11,7 +11,10 @@
 namespace PRC\Platform\Spoken_Article\AI_Experiments;
 
 use PRC\Platform\Spoken_Article\Content_Type;
+use PRC\Platform\Spoken_Article\ElevenLabs_Settings;
+use PRC\Platform\Spoken_Article\ElevenLabs_TTS;
 use PRC\Platform\Spoken_Article\Post_Meta;
+use PRC\Platform\Spoken_Article\Voice;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -101,13 +104,14 @@ class Generate_Spoken_Article {
 	/**
 	 * Get ElevenLabs settings from constants and options.
 	 *
+	 * @param int|null $spoken_article_id Optional spoken-article post ID for per-article overrides.
 	 * @return array Settings with api_key, voice_id, model, stability, and similarity_boost.
 	 */
-	private function get_elevenlabs_settings() {
+	private function get_elevenlabs_settings( ?int $spoken_article_id = null ) {
 		return array(
-			'api_key'          => defined( 'PRC_PLATFORM_ELEVENLABS_API_KEY' ) ? PRC_PLATFORM_ELEVENLABS_API_KEY : '',
-			'voice_id'         => get_option( 'elevenlabs_voice_id', 'EXAVITQu4vr4xnSDxMaL' ),
-			'model'            => get_option( 'elevenlabs_model', 'eleven_monolingual_v1' ),
+			'api_key'          => ElevenLabs_Settings::get_api_key(),
+			'voice_id'         => Voice::get_voice_id_for_post( $spoken_article_id ),
+			'model'            => ElevenLabs_Settings::get_model_for_post( $spoken_article_id ),
 			'stability'        => (float) get_option( 'elevenlabs_stability', 0.5 ),
 			'similarity_boost' => (float) get_option( 'elevenlabs_similarity_boost', 0.75 ),
 		);
@@ -132,55 +136,18 @@ class Generate_Spoken_Article {
 	 *
 	 * @param string $text The text to convert to speech.
 	 * @param array  $settings ElevenLabs settings.
-	 * @return array|WP_Error Audio data or error.
+	 * @return string|\WP_Error Audio data or error.
 	 */
 	private function generate_audio_with_elevenlabs( $text, $settings ) {
-		$api_key  = $settings['api_key'];
-		$voice_id = $settings['voice_id'];
-		$url      = "https://api.elevenlabs.io/v1/text-to-speech/{$voice_id}";
-
-		$body = wp_json_encode(
+		return ElevenLabs_TTS::synthesize(
+			$text,
+			(string) ( $settings['voice_id'] ?? '' ),
+			(string) ( $settings['model'] ?? ElevenLabs_Settings::DEFAULT_MODEL ),
 			array(
-				'text'           => $text,
-				'model_id'       => $settings['model'],
-				'voice_settings' => array(
-					'stability'        => $settings['stability'],
-					'similarity_boost' => $settings['similarity_boost'],
-				),
+				'stability'        => (float) ( $settings['stability'] ?? 0.5 ),
+				'similarity_boost' => (float) ( $settings['similarity_boost'] ?? 0.75 ),
 			)
 		);
-
-		$response = wp_remote_post(
-			$url,
-			array(
-				'headers' => array(
-					'Accept'       => 'audio/mpeg',
-					'Content-Type' => 'application/json',
-					'xi-api-key'   => $api_key,
-				),
-				'body'    => $body,
-				'timeout' => 60,
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$response_code = wp_remote_retrieve_response_code( $response );
-		if ( 200 !== $response_code ) {
-			$error_body = wp_remote_retrieve_body( $response );
-			return new \WP_Error(
-				'elevenlabs_api_error',
-				sprintf(
-					'ElevenLabs API error: %d - %s',
-					$response_code,
-					$error_body
-				)
-			);
-		}
-
-		return wp_remote_retrieve_body( $response );
 	}
 
 	/**
@@ -310,9 +277,8 @@ class Generate_Spoken_Article {
 			);
 		}
 
-		$settings = $this->get_elevenlabs_settings();
-
-		if ( empty( $settings['api_key'] ) ) {
+		// Fail before creating a spoken-article CPT when the API key is missing.
+		if ( empty( ElevenLabs_Settings::get_api_key() ) ) {
 			return array(
 				'error'     => __( 'ElevenLabs API key is not configured.', 'prc-spoken-article' ),
 				'audio_id'  => 0,
@@ -341,6 +307,8 @@ class Generate_Spoken_Article {
 				$spoken_article_id = $result;
 			}
 		}
+
+		$settings = $this->get_elevenlabs_settings( $spoken_article_id );
 
 		$audio_data = $this->generate_audio_with_elevenlabs( $text, $settings );
 
@@ -373,6 +341,8 @@ class Generate_Spoken_Article {
 				'duration'      => $upload_result['duration'],
 			)
 		);
+
+		update_post_meta( $spoken_article_id, Post_Meta::AUDIO_QUALITY_META_KEY, 'production' );
 
 		wp_update_post(
 			array(

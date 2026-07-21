@@ -14,6 +14,9 @@ import {
 	RangeControl,
 	Button,
 	__experimentalVStack as VStack,
+	__experimentalText as Text,
+	__experimentalToggleGroupControl as ToggleGroupControl,
+	__experimentalToggleGroupControlOption as ToggleGroupControlOption,
 } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { store as noticesStore } from '@wordpress/notices';
@@ -29,6 +32,11 @@ import {
 	generateAudioFromText,
 	type PRCSpokenArticleConfig,
 } from './generate-spoken-article-callback';
+import {
+	type AudioQualityTier,
+	getModelForQualityTier,
+	getModelLabelForQualityTier,
+} from '../shared/audio-quality';
 
 interface SpokenArticleMeta {
 	attachment_id: number;
@@ -41,6 +49,9 @@ declare global {
 		PRCSpokenArticleAI: PRCSpokenArticleConfig;
 	}
 }
+
+export const GENERATE_PRODUCTION_AUDIO_EVENT =
+	'prc-spoken-article:generate-production-audio';
 
 /**
  * Split plain text into paragraph blocks.
@@ -71,7 +82,11 @@ export default function AIGenerateSpokenArticle({
 }: {
 	spokenArticle: SpokenArticleMeta;
 	setTranscript: (text: string, isDraft: boolean, atMinutes?: number) => void;
-	onAudioGenerated: (data: SpokenArticleMeta, transcriptText: string) => void;
+	onAudioGenerated: (
+		data: SpokenArticleMeta,
+		transcriptText: string,
+		quality: AudioQualityTier
+	) => void;
 	voiceId: string;
 	targetMinutes: number;
 	setTargetMinutes: (val: number) => void;
@@ -82,6 +97,8 @@ export default function AIGenerateSpokenArticle({
 }) {
 	const [isFetchingText, setIsFetchingText] = useState(false);
 	const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+	const [audioQualityTier, setAudioQualityTier] =
+		useState<AudioQualityTier>('draft');
 	const busyRef = useRef(false);
 
 	const postId = useSelect(
@@ -110,7 +127,7 @@ export default function AIGenerateSpokenArticle({
 
 	const getConfig = useCallback((): PRCSpokenArticleConfig | null => {
 		const config = window.PRCSpokenArticleAI;
-		if (!config?.elevenlabs?.apiKey) {
+		if (!config?.elevenlabs?.connected) {
 			createErrorNotice(
 				__(
 					'ElevenLabs API key is not configured.',
@@ -157,9 +174,6 @@ export default function AIGenerateSpokenArticle({
 
 			const blocks = textToParagraphBlocks(result.text);
 			resetBlocks(blocks);
-			// Only mark as a draft transcript when the AI summarization actually ran.
-			// Saving the raw-text fallback as a draft would cause the panel's
-			// short-circuit to keep replaying that fallback on every click.
 			setTranscript(
 				result.text,
 				result.wasSummarized !== false,
@@ -203,105 +217,121 @@ export default function AIGenerateSpokenArticle({
 		createErrorNotice,
 	]);
 
-	const handleGenerateAudio = useCallback(async () => {
-		if (!postId || busyRef.current) {
-			return;
-		}
-
-		const text = postContent?.trim();
-		if (!text || text.length < 10) {
-			createErrorNotice(
-				__(
-					'The transcript body is too short to generate audio.',
-					'prc-spoken-article'
-				),
-				{ type: 'snackbar', isDismissible: true }
-			);
-			return;
-		}
-
-		const config = getConfig();
-		if (!config) {
-			return;
-		}
-
-		setGeneratingLock(true);
-		lockPostSaving('spoken-article-generating');
-		busyRef.current = true;
-		setIsGeneratingAudio(true);
-
-		let clearLockInFinally = true;
-
-		try {
-			const plainText = text.replace(/<[^>]+>/g, '').trim();
-
-			const configWithVoice = voiceId
-				? { ...config, elevenlabs: { ...config.elevenlabs, voiceId } }
-				: config;
-			const result = await generateAudioFromText(
-				configWithVoice,
-				postId,
-				plainText
-			);
-
-			if (result.error && result.error.length > 0) {
-				createErrorNotice(result.error, {
-					type: 'snackbar',
-					isDismissible: true,
-				});
+	const handleGenerateAudio = useCallback(
+		async (qualityTier: AudioQualityTier = audioQualityTier) => {
+			if (!postId || busyRef.current) {
 				return;
 			}
 
-			if (result.audio_id && result.audio_url) {
-				onAudioGenerated(
-					{
-						attachment_id: result.audio_id,
-						audio_url: result.audio_url,
-						duration: result.duration || '',
-					},
-					plainText
-				);
-				clearLockInFinally = false;
-				createSuccessNotice(
+			const text = postContent?.trim();
+			if (!text || text.length < 10) {
+				createErrorNotice(
 					__(
-						'Spoken article audio generated successfully.',
+						'The transcript body is too short to generate audio.',
 						'prc-spoken-article'
 					),
 					{ type: 'snackbar', isDismissible: true }
 				);
+				return;
 			}
-		} catch (err) {
-			const message =
-				err instanceof Error
-					? err.message
-					: __(
-							'An unexpected error occurred while generating audio.',
-							'prc-spoken-article'
-						);
-			createErrorNotice(message, {
-				type: 'snackbar',
-				isDismissible: true,
-			});
-		} finally {
-			setIsGeneratingAudio(false);
-			busyRef.current = false;
-			unlockPostSaving('spoken-article-generating');
-			if (clearLockInFinally) {
-				setGeneratingLock(false);
+
+			const config = getConfig();
+			if (!config) {
+				return;
 			}
-		}
-	}, [
-		postId,
-		postContent,
-		getConfig,
-		onAudioGenerated,
-		createSuccessNotice,
-		createErrorNotice,
-		setGeneratingLock,
-		lockPostSaving,
-		unlockPostSaving,
-		voiceId,
-	]);
+
+			setGeneratingLock(true);
+			lockPostSaving('spoken-article-generating');
+			busyRef.current = true;
+			setIsGeneratingAudio(true);
+
+			let clearLockInFinally = true;
+			const model = getModelForQualityTier(qualityTier);
+
+			try {
+				const plainText = text.replace(/<[^>]+>/g, '').trim();
+
+				const configWithOverrides = {
+					...config,
+					elevenlabs: {
+						...config.elevenlabs,
+						...(voiceId ? { voiceId } : {}),
+						model,
+					},
+				};
+				const result = await generateAudioFromText(
+					configWithOverrides,
+					postId,
+					plainText
+				);
+
+				if (result.error && result.error.length > 0) {
+					createErrorNotice(result.error, {
+						type: 'snackbar',
+						isDismissible: true,
+					});
+					return;
+				}
+
+				if (result.audio_id && result.audio_url) {
+					onAudioGenerated(
+						{
+							attachment_id: result.audio_id,
+							audio_url: result.audio_url,
+							duration: result.duration || '',
+						},
+						plainText,
+						qualityTier
+					);
+					clearLockInFinally = false;
+					createSuccessNotice(
+						qualityTier === 'production'
+							? __(
+									'Production-quality spoken article audio generated successfully.',
+									'prc-spoken-article'
+								)
+							: __(
+									'Draft-quality spoken article audio generated successfully.',
+									'prc-spoken-article'
+								),
+						{ type: 'snackbar', isDismissible: true }
+					);
+				}
+			} catch (err) {
+				const message =
+					err instanceof Error
+						? err.message
+						: __(
+								'An unexpected error occurred while generating audio.',
+								'prc-spoken-article'
+							);
+				createErrorNotice(message, {
+					type: 'snackbar',
+					isDismissible: true,
+				});
+			} finally {
+				setIsGeneratingAudio(false);
+				busyRef.current = false;
+				unlockPostSaving('spoken-article-generating');
+				if (clearLockInFinally) {
+					setGeneratingLock(false);
+				}
+			}
+		},
+		[
+			postId,
+			postContent,
+			getConfig,
+			onAudioGenerated,
+			createSuccessNotice,
+			createErrorNotice,
+			setGeneratingLock,
+			lockPostSaving,
+			unlockPostSaving,
+			voiceId,
+			audioQualityTier,
+		]
+	);
 
 	useEffect(() => {
 		if ((window as any).__prcSpokenArticleStartGenerate) {
@@ -319,6 +349,19 @@ export default function AIGenerateSpokenArticle({
 	}, [handleGenerateTranscript]);
 
 	useEffect(() => {
+		const handler = () => {
+			setAudioQualityTier('production');
+			void handleGenerateAudio('production');
+		};
+		window.addEventListener(GENERATE_PRODUCTION_AUDIO_EVENT, handler);
+		return () =>
+			window.removeEventListener(
+				GENERATE_PRODUCTION_AUDIO_EVENT,
+				handler
+			);
+	}, [handleGenerateAudio]);
+
+	useEffect(() => {
 		if (!isGeneratingAudio) return;
 		const handler = (e: BeforeUnloadEvent) => {
 			e.preventDefault();
@@ -329,6 +372,8 @@ export default function AIGenerateSpokenArticle({
 
 	const hasAudio = !!spokenArticle.attachment_id && !!spokenArticle.audio_url;
 	const hasContent = !!postContent && postContent.trim().length > 10;
+	const draftModelLabel = getModelLabelForQualityTier('draft');
+	const productionModelLabel = getModelLabelForQualityTier('production');
 
 	return (
 		<div className="ai-generate-spoken-article">
@@ -376,13 +421,67 @@ export default function AIGenerateSpokenArticle({
 				/>
 
 				{hasContent && !isGeneratingAudio && (
-					<Button
-						variant="primary"
-						onClick={handleGenerateAudio}
-						disabled={isRemoteLocked || isFetchingText}
-					>
-						{__('Generate Audio', 'prc-spoken-article')}
-					</Button>
+					<VStack spacing={2}>
+						<Text size={12} weight={600}>
+							{__('Audio quality', 'prc-spoken-article')}
+						</Text>
+						<ToggleGroupControl
+							__next40pxDefaultSize
+							__nextHasNoMarginBottom
+							label={__('Audio quality', 'prc-spoken-article')}
+							hideLabelFromVision
+							value={audioQualityTier}
+							onChange={(value) =>
+								setAudioQualityTier(value as AudioQualityTier)
+							}
+							isBlock
+						>
+							<ToggleGroupControlOption
+								value="draft"
+								label={__('Draft', 'prc-spoken-article')}
+							/>
+							<ToggleGroupControlOption
+								value="production"
+								label={__('Production', 'prc-spoken-article')}
+							/>
+						</ToggleGroupControl>
+						<Text size={12} color="#757575">
+							{audioQualityTier === 'draft'
+								? sprintf(
+										/* translators: %s: ElevenLabs model label */
+										__(
+											'Draft audio uses %s — faster and cheaper for review.',
+											'prc-spoken-article'
+										),
+										draftModelLabel
+									)
+								: sprintf(
+										/* translators: %s: ElevenLabs model label */
+										__(
+											'Production audio uses %s — recommended before publish.',
+											'prc-spoken-article'
+										),
+										productionModelLabel
+									)}
+						</Text>
+						<Button
+							variant="primary"
+							onClick={() =>
+								handleGenerateAudio(audioQualityTier)
+							}
+							disabled={isRemoteLocked || isFetchingText}
+						>
+							{audioQualityTier === 'production'
+								? __(
+										'Generate Production Audio',
+										'prc-spoken-article'
+									)
+								: __(
+										'Generate Draft Audio',
+										'prc-spoken-article'
+									)}
+						</Button>
+					</VStack>
 				)}
 
 				{isGeneratingAudio && (

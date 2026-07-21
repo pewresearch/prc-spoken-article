@@ -14,6 +14,7 @@ import { store as editorStore } from '@wordpress/editor';
  */
 import DocumentSidebarContent from './document-sidebar-content';
 import AudioGeneratingModal from './audio-generating-modal';
+import SpokenArticlePrePublishPanel from './pre-publish-panel';
 import { createGenerateSpokenArticleCallback } from './generate-spoken-article-callback';
 import {
 	isGeneratingLockStale,
@@ -66,6 +67,7 @@ function SpokenArticleDocumentSidebar() {
 	return (
 		<>
 			<GeneratingLockModal />
+			<SpokenArticlePrePublishPanel />
 			<PluginDocumentSettingPanel
 				name="prc-spoken-article-parent-link"
 				title={__('Parent Post', 'prc-spoken-article')}

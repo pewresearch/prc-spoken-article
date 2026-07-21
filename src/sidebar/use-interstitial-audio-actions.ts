@@ -36,7 +36,7 @@ export function useInterstitialAudioActions(
 
 	const handleGenerateAudio = useCallback(async () => {
 		const config: PRCSpokenArticleConfig = window.PRCSpokenArticleAI;
-		if (!config?.elevenlabs?.apiKey) {
+		if (!config?.elevenlabs?.connected) {
 			setError('ElevenLabs API key is not configured.');
 			return;
 		}
@@ -58,7 +58,7 @@ export function useInterstitialAudioActions(
 							...config.elevenlabs,
 							voiceId: interstitial.voiceId,
 						},
-				  }
+					}
 				: config;
 
 			const result = await generateAudioFromText(

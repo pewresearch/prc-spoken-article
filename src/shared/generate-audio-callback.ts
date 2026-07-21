@@ -5,7 +5,7 @@ function errResult(msg: string): AbilityOutput {
 }
 
 /**
- * Generate audio from provided text via ElevenLabs and upload to the WP media library.
+ * Generate audio via the WP ElevenLabs TTS proxy and upload to the media library.
  *
  * @param config  ElevenLabs + REST configuration.
  * @param text    The text to convert to speech.
@@ -16,22 +16,26 @@ export async function generateAudioFromText(
 	text: string,
 	postId: number = 0
 ): Promise<AbilityOutput> {
-	const { elevenlabs, mediaUrl, restNonce } = config;
-	if (!elevenlabs?.apiKey) {
+	const { elevenlabs, mediaUrl, restNonce, restBase } = config;
+	if (!elevenlabs?.connected) {
 		return errResult('ElevenLabs API key is not configured.');
 	}
 
+	if (!restBase) {
+		return errResult('Spoken article REST base is not configured.');
+	}
+
 	try {
-		const elUrl = `https://api.elevenlabs.io/v1/text-to-speech/${elevenlabs.voiceId}`;
-		const elRes = await fetch(elUrl, {
+		const ttsRes = await fetch(`${restBase}/elevenlabs/tts`, {
 			method: 'POST',
 			headers: {
 				Accept: 'audio/mpeg',
 				'Content-Type': 'application/json',
-				'xi-api-key': elevenlabs.apiKey,
+				'X-WP-Nonce': restNonce,
 			},
 			body: JSON.stringify({
 				text,
+				voice_id: elevenlabs.voiceId,
 				model_id: elevenlabs.model,
 				voice_settings: {
 					stability: elevenlabs.stability,
@@ -40,12 +44,26 @@ export async function generateAudioFromText(
 			}),
 		});
 
-		if (!elRes.ok) {
-			const body = await elRes.text();
-			return errResult(`ElevenLabs API error: ${elRes.status} - ${body}`);
+		if (!ttsRes.ok) {
+			const body = await ttsRes.text();
+			let message = `ElevenLabs TTS proxy error: ${ttsRes.status}`;
+			try {
+				const json = JSON.parse(body) as {
+					message?: string;
+					code?: string;
+				};
+				if (json.message) {
+					message = json.message;
+				}
+			} catch {
+				if (body) {
+					message = `${message} - ${body}`;
+				}
+			}
+			return errResult(message);
 		}
 
-		const audioBlob = await elRes.blob();
+		const audioBlob = await ttsRes.blob();
 		const filename = postId
 			? `spoken-article-interstitial-${postId}-${Date.now()}.mp3`
 			: `spoken-article-interstitial-${Date.now()}.mp3`;

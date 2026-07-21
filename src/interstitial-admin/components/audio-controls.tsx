@@ -39,7 +39,7 @@ export default function AudioControls({
 
 	const handleGenerateAudio = useCallback(async () => {
 		const config: PRCSpokenArticleConfig = window.PRCSpokenArticleAI;
-		if (!config?.elevenlabs?.apiKey) {
+		if (!config?.elevenlabs?.connected) {
 			setError('ElevenLabs API key is not configured.');
 			return;
 		}
@@ -56,7 +56,7 @@ export default function AudioControls({
 			? {
 					...config,
 					elevenlabs: { ...config.elevenlabs, voiceId },
-			  }
+				}
 			: config;
 
 		const result = await generateAudioFromText(configWithVoice, text, 0);

@@ -7,9 +7,11 @@ export interface SpokenArticleMeta {
 export interface PRCSpokenArticleConfig {
 	enabled: boolean;
 	elevenlabs: {
-		apiKey: string;
+		connected: boolean;
 		voiceId: string;
 		model: string;
+		productionModel: string;
+		draftModel: string;
 		stability: number;
 		similarityBoost: number;
 	};

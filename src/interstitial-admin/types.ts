@@ -14,6 +14,11 @@ export interface InterstitialAd {
 export interface InterstitialSettings {
 	ads: InterstitialAd[];
 	label: string;
+	elevenlabs_model: string;
+	elevenlabs_draft_model: string;
+	elevenlabs_api_key: string;
+	elevenlabs_connected: boolean;
+	api_key_via_constant: boolean;
 }
 
 export interface InterstitialStoreState {
@@ -24,4 +29,9 @@ export interface InterstitialStoreState {
 export interface ApiResponse {
 	ads: InterstitialAd[];
 	label: string;
+	elevenlabs_model: string;
+	elevenlabs_draft_model: string;
+	elevenlabs_api_key: string;
+	elevenlabs_connected: boolean;
+	api_key_via_constant: boolean;
 }

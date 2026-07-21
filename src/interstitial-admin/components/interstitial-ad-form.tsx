@@ -1,8 +1,10 @@
-import { useCallback, useMemo } from '@wordpress/element';
+import { useCallback, useMemo, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import {
 	Button,
 	Dropdown,
+	Spinner,
+	__experimentalHStack as HStack,
 	__experimentalText as Text,
 } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
@@ -11,6 +13,9 @@ import type { DataFormControlProps, Field } from '@wordpress/dataviews';
 
 import { store as interstitialsStore } from '../store';
 import VoicePicker from '../../shared/voice-picker';
+import useElevenLabsVoice from '../../shared/use-elevenlabs-voice';
+import VoiceSummary from '../../shared/voice-summary';
+import type { ElevenLabsVoice } from '../../shared/voice-types';
 import AudioControls from './audio-controls';
 import type { InterstitialAd } from '../types';
 
@@ -25,32 +30,90 @@ function VoicePickerEdit({
 	data,
 	onChange,
 }: DataFormControlProps<InterstitialAd>) {
+	const [optimisticVoice, setOptimisticVoice] =
+		useState<ElevenLabsVoice | null>(null);
+	const {
+		voice: fetchedVoice,
+		isLoading,
+		error,
+	} = useElevenLabsVoice(data.voiceId);
+	const selectedVoice =
+		optimisticVoice?.voice_id === data.voiceId
+			? optimisticVoice
+			: fetchedVoice;
+
 	return (
-		<Dropdown
-			popoverProps={{ placement: 'bottom-start' }}
-			renderToggle={({ isOpen, onToggle }) => (
-				<Button
-					variant="secondary"
-					onClick={onToggle}
-					aria-expanded={isOpen}
+		<div className="interstitial-settings__voice-field">
+			{data.voiceId ? (
+				<HStack
+					spacing={3}
+					alignment="center"
+					className="interstitial-settings__voice-row"
 				>
-					{data.voiceId
-						? __('Change Voice', 'prc-spoken-article')
-						: __('Select Voice…', 'prc-spoken-article')}
-				</Button>
-			)}
-			renderContent={({ onClose }) => (
-				<div className="interstitial-settings__voice-picker-popover">
-					<VoicePicker
-						selectedId={data.voiceId}
-						onSelect={(voiceId) => {
-							onChange({ voiceId });
-							onClose();
-						}}
+					<div className="interstitial-settings__voice-summary-wrap">
+						{isLoading && !selectedVoice && <Spinner />}
+						{selectedVoice && (
+							<VoiceSummary
+								voice={selectedVoice}
+								className="interstitial-settings__voice-summary"
+							/>
+						)}
+						{error && !selectedVoice && (
+							<Text variant="muted">{error}</Text>
+						)}
+					</div>
+					<Dropdown
+						popoverProps={{ placement: 'bottom-start' }}
+						renderToggle={({ isOpen, onToggle }) => (
+							<Button
+								variant="secondary"
+								onClick={onToggle}
+								aria-expanded={isOpen}
+							>
+								{__('Change Voice', 'prc-spoken-article')}
+							</Button>
+						)}
+						renderContent={({ onClose }) => (
+							<div className="interstitial-settings__voice-picker-popover">
+								<VoicePicker
+									selectedId={data.voiceId}
+									onSelect={(voiceId, voice) => {
+										setOptimisticVoice(voice);
+										onChange({ voiceId });
+										onClose();
+									}}
+								/>
+							</div>
+						)}
 					/>
-				</div>
+				</HStack>
+			) : (
+				<Dropdown
+					popoverProps={{ placement: 'bottom-start' }}
+					renderToggle={({ isOpen, onToggle }) => (
+						<Button
+							variant="secondary"
+							onClick={onToggle}
+							aria-expanded={isOpen}
+						>
+							{__('Select Voice…', 'prc-spoken-article')}
+						</Button>
+					)}
+					renderContent={({ onClose }) => (
+						<div className="interstitial-settings__voice-picker-popover">
+							<VoicePicker
+								selectedId={data.voiceId}
+								onSelect={(voiceId, voice) => {
+									setOptimisticVoice(voice);
+									onChange({ voiceId });
+									onClose();
+								}}
+							/>
+						</div>
+					)}
+				/>
 			)}
-		/>
+		</div>
 	);
 }
 
@@ -177,12 +240,40 @@ export default function InterstitialAdForm({ adId }: InterstitialAdFormProps) {
 		() => ({
 			layout: { type: 'card' as const, withHeader: false },
 			fields: [
-				'label',
-				'isActive',
+				{
+					id: 'labelAndActive',
+					layout: { type: 'card' as const, withHeader: false },
+					children: [
+						{
+							id: 'labelActiveRow',
+							layout: {
+								type: 'row' as const,
+								alignment: 'end' as const,
+								styles: {
+									label: { flex: 3 },
+									isActive: { flex: 1 },
+								},
+							},
+							children: ['label', 'isActive'],
+						},
+					],
+				},
 				'weight',
 				'voiceId',
-				'text',
-				TEXT_CHAR_COUNT_FIELD_ID,
+				{
+					id: 'adCopy',
+					layout: { type: 'card' as const, withHeader: false },
+					children: [
+						'text',
+						{
+							id: TEXT_CHAR_COUNT_FIELD_ID,
+							layout: {
+								type: 'regular' as const,
+								labelPosition: 'none' as const,
+							},
+						},
+					],
+				},
 				AUDIO_FIELD_ID,
 			],
 		}),

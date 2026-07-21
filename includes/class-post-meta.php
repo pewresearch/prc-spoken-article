@@ -21,6 +21,8 @@ class Post_Meta {
 	const INTERSTITIAL_ENABLED_META_KEY = 'spoken_article_interstitial_enabled';
 	const GENERATING_META_KEY           = 'spoken_article_generating';
 	const TARGET_MINUTES_META_KEY       = 'spoken_article_target_minutes';
+	const MODEL_META_KEY                = 'spoken_article_model';
+	const AUDIO_QUALITY_META_KEY        = 'spoken_article_audio_quality';
 	const PLAYER_ENABLED_META_KEY       = 'spoken_article_player_enabled';
 
 	/**
@@ -115,6 +117,45 @@ class Post_Meta {
 				'default'           => '',
 				'show_in_rest'      => true,
 				'sanitize_callback' => 'sanitize_text_field',
+				'auth_callback'     => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			)
+		);
+
+		register_post_meta(
+			$post_type,
+			self::MODEL_META_KEY,
+			array(
+				'single'            => true,
+				'type'              => 'string',
+				'description'       => 'ElevenLabs TTS model ID for this spoken article.',
+				'default'           => '',
+				'show_in_rest'      => true,
+				'sanitize_callback' => array( ElevenLabs_Settings::class, 'sanitize_model' ),
+				'auth_callback'     => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			)
+		);
+
+		register_post_meta(
+			$post_type,
+			self::AUDIO_QUALITY_META_KEY,
+			array(
+				'single'            => true,
+				'type'              => 'string',
+				'description'       => 'Quality tier of the attached spoken article audio (`draft` or `production`).',
+				'default'           => '',
+				'show_in_rest'      => true,
+				'sanitize_callback' => function ( $value ) {
+					$value = sanitize_text_field( (string) $value );
+					if ( in_array( $value, array( 'draft', 'production' ), true ) ) {
+						return $value;
+					}
+
+					return '';
+				},
 				'auth_callback'     => function () {
 					return current_user_can( 'edit_posts' );
 				},

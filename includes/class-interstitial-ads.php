@@ -66,9 +66,12 @@ class Interstitial_Ads {
 		$label = get_option( self::LABEL_OPTION_KEY, self::DEFAULT_LABEL );
 
 		return rest_ensure_response(
-			array(
-				'ads'   => $ads,
-				'label' => $label,
+			array_merge(
+				array(
+					'ads'   => $ads,
+					'label' => $label,
+				),
+				ElevenLabs_Settings::get_admin_settings_payload()
 			)
 		);
 	}
@@ -102,11 +105,15 @@ class Interstitial_Ads {
 
 		update_option( self::ADS_OPTION_KEY, $sanitized_ads );
 		update_option( self::LABEL_OPTION_KEY, $label );
+		ElevenLabs_Settings::save_admin_settings( is_array( $body ) ? $body : array() );
 
 		return rest_ensure_response(
-			array(
-				'ads'   => $sanitized_ads,
-				'label' => $label,
+			array_merge(
+				array(
+					'ads'   => $sanitized_ads,
+					'label' => $label,
+				),
+				ElevenLabs_Settings::get_admin_settings_payload()
 			)
 		);
 	}
@@ -203,8 +210,8 @@ class Interstitial_Ads {
 	public function register_admin_page(): void {
 		add_submenu_page(
 			'edit.php?post_type=spoken-article',
-			__( 'Spoken Article Interstitials', 'prc-spoken-article' ),
-			__( 'Interstitial Ads', 'prc-spoken-article' ),
+			__( 'Spoken Article Settings', 'prc-spoken-article' ),
+			__( 'Settings', 'prc-spoken-article' ),
 			'manage_options',
 			self::ADMIN_PAGE_SLUG,
 			array( $this, 'render_admin_page' )
@@ -265,13 +272,7 @@ class Interstitial_Ads {
 			'PRCSpokenArticleAI',
 			array(
 				'enabled'    => true,
-				'elevenlabs' => array(
-					'apiKey'          => defined( 'PRC_PLATFORM_ELEVENLABS_API_KEY' ) ? PRC_PLATFORM_ELEVENLABS_API_KEY : '',
-					'voiceId'         => get_option( 'elevenlabs_voice_id', 'EXAVITQu4vr4xnSDxMaL' ),
-					'model'           => get_option( 'elevenlabs_model', 'eleven_monolingual_v1' ),
-					'stability'       => (float) get_option( 'elevenlabs_stability', 0.5 ),
-					'similarityBoost' => (float) get_option( 'elevenlabs_similarity_boost', 0.75 ),
-				),
+				'elevenlabs' => ElevenLabs_Settings::get_localize_config(),
 				'restBase'   => rest_url( Rest_API::NAMESPACE ),
 				'mediaUrl'   => rest_url( 'wp/v2/media' ),
 				'restNonce'  => wp_create_nonce( 'wp_rest' ),

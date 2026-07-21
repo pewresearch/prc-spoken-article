@@ -5,19 +5,12 @@ import { __ } from '@wordpress/i18n';
 import { useState, useEffect, useRef, useCallback } from '@wordpress/element';
 import {
 	SearchControl,
-	Button,
 	Spinner,
 	__experimentalText as Text,
 } from '@wordpress/components';
 
-interface ElevenLabsVoice {
-	voice_id: string;
-	name: string;
-	category?: string;
-	description?: string;
-	preview_url?: string;
-	labels?: Record<string, string>;
-}
+import type { ElevenLabsVoice } from './voice-types';
+import VoicePickerItem from './voice-picker-item';
 
 interface VoicesResponse {
 	voices: ElevenLabsVoice[];
@@ -26,7 +19,7 @@ interface VoicesResponse {
 
 interface VoicePickerProps {
 	selectedId: string;
-	onSelect: (voiceId: string) => void;
+	onSelect: (voiceId: string, voice: ElevenLabsVoice) => void;
 }
 
 export default function VoicePicker({
@@ -34,7 +27,9 @@ export default function VoicePicker({
 	onSelect,
 }: VoicePickerProps) {
 	const config = window.PRCSpokenArticleAI;
-	const apiKey = config?.elevenlabs?.apiKey;
+	const isConnected = !!config?.elevenlabs?.connected;
+	const restBase = config?.restBase;
+	const restNonce = config?.restNonce;
 
 	const [voices, setVoices] = useState<ElevenLabsVoice[]>([]);
 	const [search, setSearch] = useState('');
@@ -47,7 +42,7 @@ export default function VoicePicker({
 
 	const fetchVoices = useCallback(
 		async (query: string) => {
-			if (!apiKey) {
+			if (!isConnected || !restBase || !restNonce) {
 				setError(
 					__(
 						'ElevenLabs API key is not configured.',
@@ -64,7 +59,6 @@ export default function VoicePicker({
 				page_size: '30',
 				sort: 'name',
 				sort_direction: 'asc',
-				include_total_count: 'false',
 			});
 			if (query) {
 				params.set('search', query);
@@ -72,17 +66,20 @@ export default function VoicePicker({
 
 			try {
 				const res = await fetch(
-					`https://api.elevenlabs.io/v2/voices?${params.toString()}`,
+					`${restBase}/elevenlabs/voices?${params.toString()}`,
 					{
 						headers: {
-							'xi-api-key': apiKey,
+							'X-WP-Nonce': restNonce,
 							Accept: 'application/json',
 						},
 					}
 				);
 
 				if (!res.ok) {
-					throw new Error(`ElevenLabs API error: ${res.status}`);
+					const body = await res.text();
+					throw new Error(
+						body || `Voices proxy error: ${res.status}`
+					);
 				}
 
 				const data = (await res.json()) as VoicesResponse;
@@ -97,7 +94,7 @@ export default function VoicePicker({
 				setIsLoading(false);
 			}
 		},
-		[apiKey]
+		[isConnected, restBase, restNonce]
 	);
 
 	useEffect(() => {
@@ -118,8 +115,8 @@ export default function VoicePicker({
 		};
 	}, [search, fetchVoices]);
 
-	const handleSelect = (voiceId: string) => {
-		onSelect(voiceId);
+	const handleSelect = (voice: ElevenLabsVoice) => {
+		onSelect(voice.voice_id, voice);
 	};
 
 	const handlePreview = (voice: ElevenLabsVoice) => {
@@ -151,12 +148,7 @@ export default function VoicePicker({
 		};
 	}, []);
 
-	const labelString = (labels?: Record<string, string>) => {
-		if (!labels) return '';
-		return Object.values(labels).slice(0, 3).join(', ');
-	};
-
-	if (!apiKey) {
+	if (!isConnected) {
 		return (
 			<Text>
 				{__(
@@ -198,120 +190,16 @@ export default function VoicePicker({
 				className="voice-picker__list"
 				style={{ maxHeight: 300, overflowY: 'auto' }}
 			>
-				{voices.map((voice) => {
-					const isSelected = voice.voice_id === selectedId;
-					const isPlaying = voice.voice_id === playingId;
-
-					return (
-						<div
-							key={voice.voice_id}
-							className={`voice-picker__item${isSelected ? ' is-selected' : ''}`}
-							style={{
-								display: 'flex',
-								alignItems: 'center',
-								gap: 8,
-								padding: '8px 4px',
-								borderBottom: '1px solid #ddd',
-								background: isSelected
-									? 'rgba(0, 124, 186, 0.08)'
-									: 'transparent',
-								cursor: 'pointer',
-							}}
-							onClick={() => handleSelect(voice.voice_id)}
-							onKeyDown={(e) => {
-								if (e.key === 'Enter' || e.key === ' ') {
-									e.preventDefault();
-									handleSelect(voice.voice_id);
-								}
-							}}
-							role="option"
-							aria-selected={isSelected}
-							tabIndex={0}
-						>
-							{voice.preview_url && (
-								<Button
-									size="small"
-									variant="tertiary"
-									icon={
-										isPlaying ? (
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												viewBox="0 0 24 24"
-												width="16"
-												height="16"
-											>
-												<path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-											</svg>
-										) : (
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												viewBox="0 0 24 24"
-												width="16"
-												height="16"
-											>
-												<path d="M8 5v14l11-7z" />
-											</svg>
-										)
-									}
-									onClick={(e: React.MouseEvent) => {
-										e.stopPropagation();
-										handlePreview(voice);
-									}}
-									label={
-										isPlaying
-											? __(
-													'Stop preview',
-													'prc-spoken-article'
-												)
-											: __(
-													'Preview voice',
-													'prc-spoken-article'
-												)
-									}
-								/>
-							)}
-
-							<div
-								style={{
-									flex: 1,
-									minWidth: 0,
-									overflow: 'hidden',
-								}}
-							>
-								<div
-									style={{
-										fontWeight: isSelected ? 600 : 400,
-										whiteSpace: 'nowrap',
-										overflow: 'hidden',
-										textOverflow: 'ellipsis',
-									}}
-								>
-									{voice.name}
-									{isSelected && ' ✓'}
-								</div>
-								{(voice.category ||
-									labelString(voice.labels)) && (
-									<div
-										style={{
-											fontSize: 11,
-											color: '#757575',
-											whiteSpace: 'nowrap',
-											overflow: 'hidden',
-											textOverflow: 'ellipsis',
-										}}
-									>
-										{[
-											voice.category,
-											labelString(voice.labels),
-										]
-											.filter(Boolean)
-											.join(' · ')}
-									</div>
-								)}
-							</div>
-						</div>
-					);
-				})}
+				{voices.map((voice) => (
+					<VoicePickerItem
+						key={voice.voice_id}
+						voice={voice}
+						isSelected={voice.voice_id === selectedId}
+						isPlaying={voice.voice_id === playingId}
+						onSelect={handleSelect}
+						onPreview={handlePreview}
+					/>
+				))}
 			</div>
 		</div>
 	);

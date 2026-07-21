@@ -51,6 +51,9 @@ class Bootstrap {
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-wp-admin.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-podcast-feed.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-interstitial-ads.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-elevenlabs-settings.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-voice.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-elevenlabs-tts.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/ai-experiments/class-ai-experiments.php';
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {

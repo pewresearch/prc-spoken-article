@@ -96,7 +96,7 @@ export default function AIGenerateSpokenArticle({
 
 	const getConfig = useCallback((): PRCSpokenArticleConfig | null => {
 		const config = window.PRCSpokenArticleAI;
-		if (!config?.elevenlabs?.apiKey) {
+		if (!config?.elevenlabs?.connected) {
 			createErrorNotice(
 				__(
 					'ElevenLabs API key is not configured.',

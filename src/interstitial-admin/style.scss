@@ -11,6 +11,12 @@ $grid-unit-20: 16px;
 		width: 100%;
 	}
 
+	&__player-label {
+		width: 100%;
+		padding-bottom: $grid-unit-15;
+		border-bottom: 1px solid #f0f0f1;
+	}
+
 	&__ads-list {
 		list-style: none;
 		padding: 0;
@@ -97,6 +103,9 @@ $grid-unit-20: 16px;
 	}
 
 	&__ads-actions {
+		display: flex;
+		flex-direction: column;
+		gap: $grid-unit-15;
 		padding-top: $grid-unit-15;
 		border-top: 1px solid #f0f0f1;
 	}
@@ -140,5 +149,38 @@ $grid-unit-20: 16px;
 	&__voice-picker-popover {
 		padding: $grid-unit-15;
 		width: 360px;
+	}
+
+	&__voice-field {
+		width: 100%;
+	}
+
+	&__voice-row {
+		flex-wrap: wrap;
+		width: 100%;
+	}
+
+	&__voice-summary-wrap {
+		flex: 1;
+		min-width: 0;
+	}
+
+	&__voice-summary {
+		&.voice-summary,
+		.voice-summary__name {
+			font-weight: 600;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.voice-summary__meta {
+			margin-top: $grid-unit-05;
+			font-size: 11px;
+			color: $gray-700;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
 	}
 }

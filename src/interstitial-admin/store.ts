@@ -1,4 +1,8 @@
 import { createSettingsStore } from '@prc/components';
+import {
+	DEFAULT_DRAFT_ELEVENLABS_MODEL,
+	DEFAULT_ELEVENLABS_MODEL,
+} from '../shared/elevenlabs-models';
 import type {
 	InterstitialAd,
 	InterstitialSettings,
@@ -18,17 +22,24 @@ export const store = createSettingsStore<
 		settings: {
 			ads: [],
 			label: 'A message from Pew Research Center',
+			elevenlabs_model: DEFAULT_ELEVENLABS_MODEL,
+			elevenlabs_draft_model: DEFAULT_DRAFT_ELEVENLABS_MODEL,
+			elevenlabs_api_key: '',
+			elevenlabs_connected: false,
+			api_key_via_constant: false,
 		},
 		isLoaded: false,
 	},
 	getSettingsFromResponse: (response) => ({
 		ads: response.ads,
 		label: response.label,
+		elevenlabs_model: response.elevenlabs_model,
+		elevenlabs_draft_model: response.elevenlabs_draft_model,
+		elevenlabs_api_key: response.elevenlabs_api_key,
+		elevenlabs_connected: response.elevenlabs_connected,
+		api_key_via_constant: response.api_key_via_constant,
 	}),
 	extraActions: {
-		updateLabel(label: string) {
-			return { type: 'UPDATE_LABEL', label };
-		},
 		addAd(ad: InterstitialAd) {
 			return { type: 'ADD_AD', ad };
 		},
@@ -41,14 +52,6 @@ export const store = createSettingsStore<
 	},
 	extraReducer: (state, action) => {
 		switch (action.type) {
-			case 'UPDATE_LABEL':
-				return {
-					...state,
-					settings: {
-						...state.settings,
-						label: action.label as string,
-					},
-				};
 			case 'ADD_AD':
 				return {
 					...state,
@@ -92,9 +95,6 @@ export const store = createSettingsStore<
 	extraSelectors: {
 		getAds(state: InterstitialStoreState): InterstitialAd[] {
 			return state.settings.ads;
-		},
-		getLabel(state: InterstitialStoreState): string {
-			return state.settings.label;
 		},
 	},
 });

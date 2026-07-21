@@ -18,6 +18,16 @@ class Content_Type {
 	const POST_TYPE = 'spoken-article';
 
 	/**
+	 * Object cache group for spoken-article parent lookups.
+	 */
+	private const CACHE_GROUP = 'prc_spoken_article';
+
+	/**
+	 * Cache TTL for spoken-article parent lookups.
+	 */
+	private const CACHE_TTL = HOUR_IN_SECONDS;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Loader $loader The loader instance.
@@ -27,6 +37,120 @@ class Content_Type {
 		$loader->add_action( 'rest_api_init', $this, 'register_rest_fields' );
 		$loader->add_filter( 'allowed_block_types_all', $this, 'restrict_block_types', 10, 2 );
 		$loader->add_action( 'admin_enqueue_scripts', $this, 'dequeue_ai_summarization', 20 );
+		// Parent content types fire through the publish pipeline.
+		$loader->add_action( 'prc_platform_on_update', $this, 'clear_cache_on_update', 10, 1 );
+		$loader->add_action( 'prc_platform_on_publish', $this, 'clear_cache_on_update', 10, 1 );
+		// spoken-article is not in the publish pipeline allowlist; invalidate on CPT save + audio meta writes.
+		$loader->add_action( 'save_post_' . self::POST_TYPE, $this, 'clear_cache_on_spoken_article_save', 10, 1 );
+		$loader->add_action( 'updated_post_meta', $this, 'clear_cache_on_audio_meta_change', 10, 4 );
+		$loader->add_action( 'added_post_meta', $this, 'clear_cache_on_audio_meta_change', 10, 4 );
+		$loader->add_action( 'deleted_post_meta', $this, 'clear_cache_on_audio_meta_change', 10, 4 );
+	}
+
+	/**
+	 * Whether spoken-article lookups should use object cache.
+	 *
+	 * Bypass for logged-in users and previews so draft/pending spoken-articles stay visible.
+	 *
+	 * @return bool
+	 */
+	public static function should_use_cache(): bool {
+		return ! is_user_logged_in() && ! is_preview();
+	}
+
+	/**
+	 * Cache key for a parent post's spoken-article lookup payload.
+	 *
+	 * @param int $parent_post_id Parent post ID.
+	 * @return string
+	 */
+	public static function get_lookup_cache_key( int $parent_post_id ): string {
+		return 'spoken_article_lookup_' . $parent_post_id;
+	}
+
+	/**
+	 * Clear cached spoken-article lookup for a parent post.
+	 *
+	 * @param int $parent_post_id Parent post ID.
+	 * @return void
+	 */
+	public static function clear_cache_for_parent( int $parent_post_id ): void {
+		if ( $parent_post_id <= 0 ) {
+			return;
+		}
+
+		wp_cache_delete( self::get_lookup_cache_key( $parent_post_id ), self::CACHE_GROUP );
+	}
+
+	/**
+	 * Invalidate spoken-article lookup cache when parent content updates.
+	 *
+	 * @hook prc_platform_on_update
+	 * @hook prc_platform_on_publish
+	 *
+	 * @param object $post Extended WP_Post-like object from the pipeline.
+	 * @return void
+	 */
+	public function clear_cache_on_update( $post ): void {
+		// Pipeline passes stdClass from setup_extra_wp_post_object_fields(), not WP_Post.
+		if ( ! is_object( $post ) || empty( $post->ID ) || empty( $post->post_type ) ) {
+			return;
+		}
+
+		// spoken-article CPT saves are handled by clear_cache_on_spoken_article_save;
+		// the publish pipeline never emits these hooks for that post type.
+		if ( self::POST_TYPE === $post->post_type ) {
+			return;
+		}
+
+		self::clear_cache_for_parent( (int) $post->ID );
+	}
+
+	/**
+	 * Invalidate parent lookup cache when a spoken-article CPT is saved.
+	 *
+	 * @hook save_post_spoken-article
+	 *
+	 * @param int $post_id Spoken-article post ID.
+	 * @return void
+	 */
+	public function clear_cache_on_spoken_article_save( $post_id ): void {
+		$parent_id = (int) wp_get_post_parent_id( (int) $post_id );
+		if ( $parent_id > 0 ) {
+			self::clear_cache_for_parent( $parent_id );
+		}
+	}
+
+	/**
+	 * Invalidate parent lookup cache when spoken-article audio meta changes.
+	 *
+	 * Audio generation often writes meta without a full parent-content pipeline event.
+	 *
+	 * @hook updated_post_meta
+	 * @hook added_post_meta
+	 * @hook deleted_post_meta
+	 *
+	 * @param mixed  $meta_id    Meta ID (or IDs on delete).
+	 * @param int    $object_id  Object ID.
+	 * @param string $meta_key   Meta key.
+	 * @param mixed  $meta_value Meta value.
+	 * @return void
+	 */
+	public function clear_cache_on_audio_meta_change( $meta_id, $object_id, $meta_key, $meta_value ): void {
+		unset( $meta_id, $meta_value );
+		if ( Post_Meta::META_KEY !== $meta_key ) {
+			return;
+		}
+
+		$post = get_post( (int) $object_id );
+		if ( ! $post instanceof \WP_Post || self::POST_TYPE !== $post->post_type ) {
+			return;
+		}
+
+		$parent_id = (int) $post->post_parent;
+		if ( $parent_id > 0 ) {
+			self::clear_cache_for_parent( $parent_id );
+		}
 	}
 
 	/**
@@ -126,12 +250,12 @@ class Content_Type {
 	}
 
 	/**
-	 * Get the spoken-article post for a given parent content post.
+	 * Query spoken-article ID and audio payload for a parent post.
 	 *
-	 * @param int $parent_post_id The parent post ID.
-	 * @return \WP_Post|null The spoken-article post, or null if none exists.
+	 * @param int $parent_post_id Parent post ID.
+	 * @return array{spoken_article_id: int|null, audio: array|null}
 	 */
-	public static function get_spoken_article_for_post( int $parent_post_id ): ?\WP_Post {
+	private static function query_spoken_article_lookup( int $parent_post_id ): array {
 		$posts = get_posts(
 			array(
 				'post_type'      => self::POST_TYPE,
@@ -144,7 +268,69 @@ class Content_Type {
 			)
 		);
 
-		return ! empty( $posts ) ? $posts[0] : null;
+		if ( empty( $posts ) ) {
+			return array(
+				'spoken_article_id' => null,
+				'audio'             => null,
+			);
+		}
+
+		$spoken_article_id = (int) $posts[0]->ID;
+		$audio             = get_post_meta( $spoken_article_id, Post_Meta::META_KEY, true );
+		if ( empty( $audio ) || empty( $audio['attachment_id'] ) || empty( $audio['audio_url'] ) ) {
+			$audio = null;
+		}
+
+		return array(
+			'spoken_article_id' => $spoken_article_id,
+			'audio'             => $audio,
+		);
+	}
+
+	/**
+	 * Get cached spoken-article lookup payload for a parent post.
+	 *
+	 * @param int $parent_post_id Parent post ID.
+	 * @return array{spoken_article_id: int|null, audio: array|null}
+	 */
+	public static function get_spoken_article_lookup( int $parent_post_id ): array {
+		if ( $parent_post_id <= 0 ) {
+			return array(
+				'spoken_article_id' => null,
+				'audio'             => null,
+			);
+		}
+
+		if ( ! self::should_use_cache() ) {
+			return self::query_spoken_article_lookup( $parent_post_id );
+		}
+
+		$cache_key = self::get_lookup_cache_key( $parent_post_id );
+		$cached    = wp_cache_get( $cache_key, self::CACHE_GROUP );
+		if ( false !== $cached && is_array( $cached ) ) {
+			return $cached;
+		}
+
+		$lookup = self::query_spoken_article_lookup( $parent_post_id );
+		wp_cache_set( $cache_key, $lookup, self::CACHE_GROUP, self::CACHE_TTL );
+
+		return $lookup;
+	}
+
+	/**
+	 * Get the spoken-article post for a given parent content post.
+	 *
+	 * @param int $parent_post_id The parent post ID.
+	 * @return \WP_Post|null The spoken-article post, or null if none exists.
+	 */
+	public static function get_spoken_article_for_post( int $parent_post_id ): ?\WP_Post {
+		$lookup = self::get_spoken_article_lookup( $parent_post_id );
+		if ( empty( $lookup['spoken_article_id'] ) ) {
+			return null;
+		}
+
+		$post = get_post( (int) $lookup['spoken_article_id'] );
+		return $post instanceof \WP_Post ? $post : null;
 	}
 
 	/**
@@ -154,17 +340,10 @@ class Content_Type {
 	 * @return array{attachment_id: int, audio_url: string, duration: string}|null Audio data or null.
 	 */
 	public static function get_audio_for_post( int $parent_post_id ): ?array {
-		$spoken_article = self::get_spoken_article_for_post( $parent_post_id );
-		if ( ! $spoken_article ) {
-			return null;
-		}
+		$lookup = self::get_spoken_article_lookup( $parent_post_id );
+		$audio  = $lookup['audio'] ?? null;
 
-		$audio = get_post_meta( $spoken_article->ID, Post_Meta::META_KEY, true );
-		if ( empty( $audio ) || empty( $audio['attachment_id'] ) || empty( $audio['audio_url'] ) ) {
-			return null;
-		}
-
-		return $audio;
+		return is_array( $audio ) ? $audio : null;
 	}
 
 	/**
@@ -205,7 +384,12 @@ class Content_Type {
 			$args['post_content'] = $content;
 		}
 
-		return wp_insert_post( $args, true );
+		$post_id = wp_insert_post( $args, true );
+		if ( ! is_wp_error( $post_id ) ) {
+			self::clear_cache_for_parent( $parent_post_id );
+		}
+
+		return $post_id;
 	}
 
 	/**

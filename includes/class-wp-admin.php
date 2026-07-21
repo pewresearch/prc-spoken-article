@@ -141,20 +141,12 @@ class WP_Admin {
 			$this->get_config_data()
 		);
 
-		$api_key = defined( 'PRC_PLATFORM_ELEVENLABS_API_KEY' ) ? PRC_PLATFORM_ELEVENLABS_API_KEY : '';
-
 		wp_localize_script(
 			self::$document_handle,
 			'PRCSpokenArticleAI',
 			array(
 				'enabled'    => true,
-				'elevenlabs' => array(
-					'apiKey'          => $api_key,
-					'voiceId'         => get_option( 'elevenlabs_voice_id', 'EXAVITQu4vr4xnSDxMaL' ),
-					'model'           => get_option( 'elevenlabs_model', 'eleven_monolingual_v1' ),
-					'stability'       => (float) get_option( 'elevenlabs_stability', 0.5 ),
-					'similarityBoost' => (float) get_option( 'elevenlabs_similarity_boost', 0.75 ),
-				),
+				'elevenlabs' => ElevenLabs_Settings::get_localize_config(),
 				'restBase'   => rest_url( Rest_API::NAMESPACE ),
 				'mediaUrl'   => rest_url( 'wp/v2/media' ),
 				'restNonce'  => wp_create_nonce( 'wp_rest' ),

@@ -6,14 +6,21 @@ import { useState } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 import { useEntityProp } from '@wordpress/core-data';
 import { store as editorStore } from '@wordpress/editor';
-import { PanelRow, Button, Notice, ExternalLink } from '@wordpress/components';
+import {
+	PanelRow,
+	Button,
+	Notice,
+	ExternalLink,
+	__experimentalText as Text,
+} from '@wordpress/components';
 
 /**
  * Internal Dependencies
  */
 import AIGenerateSpokenArticle from './ai-generate-spoken-article';
 import InterstitialPanel from './interstitial-panel';
-import VoicePicker from '../shared/voice-picker';
+import VoiceSettingsPanel from './voice-settings-panel';
+import { getAudioQualityLabel } from '../shared/audio-quality';
 import {
 	useSpokenArticleGeneratingLock,
 	emptyGeneratingLock,
@@ -87,6 +94,7 @@ export default function DocumentSidebarContent({
 		meta?.spoken_article_voice_id ||
 		window.PRCSpokenArticleAI?.elevenlabs?.voiceId ||
 		'';
+	const audioQuality: string = meta?.spoken_article_audio_quality ?? '';
 	const playCount: number = meta?.spoken_article_play_count ?? 0;
 	const interstitial = meta?.spoken_article_interstitial ?? {
 		text: '',
@@ -108,6 +116,7 @@ export default function DocumentSidebarContent({
 				audio_url: '',
 				duration: '',
 			},
+			spoken_article_audio_quality: '',
 		});
 	};
 
@@ -127,12 +136,14 @@ export default function DocumentSidebarContent({
 
 	const handleAudioGenerated = (
 		data: SpokenArticleMeta,
-		_transcriptText: string
+		_transcriptText: string,
+		quality: 'draft' | 'production'
 	) => {
 		const currentMeta = getEditedPostMeta();
 		setMeta({
 			...currentMeta,
 			spoken_article: data,
+			spoken_article_audio_quality: quality,
 			spoken_article_transcript_is_draft: false,
 			spoken_article_generating: emptyGeneratingLock(),
 		});
@@ -179,6 +190,11 @@ export default function DocumentSidebarContent({
 			<>
 				{hasAudio ? (
 					<>
+						<PanelRow>
+							<Text weight={600}>
+								{getAudioQualityLabel(audioQuality)}
+							</Text>
+						</PanelRow>
 						<PanelRow>
 							<div style={{ width: '100%' }}>
 								<p
@@ -232,7 +248,10 @@ export default function DocumentSidebarContent({
 
 	if (section === 'voice') {
 		return (
-			<VoicePicker selectedId={voiceId} onSelect={handleVoiceChange} />
+			<VoiceSettingsPanel
+				voiceId={voiceId}
+				onVoiceChange={handleVoiceChange}
+			/>
 		);
 	}
 
