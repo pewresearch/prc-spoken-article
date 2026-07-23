@@ -1,9 +1,9 @@
 
-> @prc/spoken-article@1.2.0 build
+> @prc/spoken-article@1.1.0 build
 > npm run build:blocks && npm run build:parent-sidebar && npm run build:document-sidebar && npm run build:interstitial-admin
 
 
-> @prc/spoken-article@1.2.0 build:blocks
+> @prc/spoken-article@1.1.0 build:blocks
 > wp-scripts build --source-path=./src/player-block --output-path=./build/player-block --webpack-copy-php --experimental-modules && wp-scripts build --source-path=./src/player-trigger-block --output-path=./build/player-trigger-block --webpack-copy-php --experimental-modules && wp-scripts build --source-path=./src/player-add-to-queue-block --output-path=./build/player-add-to-queue-block --webpack-copy-php --experimental-modules
 
 assets by chunk 2.7 KiB (name: index)
@@ -24,14 +24,14 @@ built modules 3.03 KiB (javascript) 12.5 KiB (css/mini-extract) [built]
   ./src/player-block/index.js + 11 modules 3.03 KiB [not cacheable] [built] [code generated]
   css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]!./src/player-block/editor.scss 0 bytes [built] [code generated]
   css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]!./src/player-block/style.scss 12.5 KiB [built] [code generated]
-webpack 5.106.2 compiled successfully in 5532 ms
+webpack 5.106.2 compiled successfully in 1715 ms
 
 asset view.js 10.9 KiB [compared for emit] [javascript module] [minimized] (name: view)
 asset view.asset.php 130 bytes [compared for emit] (name: view)
 Entrypoint view 11 KiB = view.js 10.9 KiB view.asset.php 130 bytes
 orphan modules 6.62 KiB [orphan] 6 modules
 ./src/player-block/view.js + 6 modules 22.8 KiB [not cacheable] [built] [code generated]
-webpack 5.106.2 compiled successfully in 3290 ms
+webpack 5.106.2 compiled successfully in 1133 ms
 assets by chunk 4.15 KiB (name: index)
   assets by path *.css 2 bytes
     asset index-rtl.css 1 bytes [compared for emit] (name: index)
@@ -50,9 +50,9 @@ built modules 5.12 KiB (javascript) 665 bytes (css/mini-extract) [built]
   ./src/player-trigger-block/index.js + 12 modules 5.12 KiB [not cacheable] [built] [code generated]
   css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]!./src/player-trigger-block/editor.scss 0 bytes [built] [code generated]
   css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]!./src/player-trigger-block/style.scss 665 bytes [built] [code generated]
-webpack 5.106.2 compiled successfully in 2469 ms
+webpack 5.106.2 compiled successfully in 1123 ms
 
-webpack 5.106.2 compiled successfully in 76 ms
+webpack 5.106.2 compiled successfully in 17 ms
 assets by path *.php 3.48 KiB
   asset class-player-add-to-queue-block.php 3.32 KiB [compared for emit] [from: src/player-add-to-queue-block/class-player-add-to-queue-block.php] [copied]
   asset index.asset.php 162 bytes [compared for emit] (name: index)
@@ -67,11 +67,11 @@ runtime modules 2.51 KiB 3 modules
 built modules 3.95 KiB (javascript) 1.3 KiB (css/mini-extract) [built]
   ./src/player-add-to-queue-block/index.js + 7 modules 3.95 KiB [not cacheable] [built] [code generated]
   css ../../node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[3].use[1]!../../node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[3].use[2]!../../node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[3].use[3]!./src/player-add-to-queue-block/style.scss 1.3 KiB [built] [code generated]
-webpack 5.106.2 compiled successfully in 2360 ms
+webpack 5.106.2 compiled successfully in 1546 ms
 
-webpack 5.106.2 compiled successfully in 34 ms
+webpack 5.106.2 compiled successfully in 21 ms
 
-> @prc/spoken-article@1.2.0 build:parent-sidebar
+> @prc/spoken-article@1.1.0 build:parent-sidebar
 > wp-scripts build --source-path=./src/parent-sidebar --output-path=./build/parent-sidebar --webpack-copy-php
 
 asset index.js 5.14 KiB [compared for emit] [minimized] (name: index)
@@ -79,25 +79,25 @@ asset index.asset.php 199 bytes [compared for emit] (name: index)
 Entrypoint index 5.34 KiB = index.js 5.14 KiB index.asset.php 199 bytes
 orphan modules 8.38 KiB [orphan] 10 modules
 ./src/parent-sidebar/index.tsx + 10 modules 9.98 KiB [not cacheable] [built] [code generated]
-webpack 5.106.2 compiled successfully in 1981 ms
+webpack 5.106.2 compiled successfully in 625 ms
 
-> @prc/spoken-article@1.2.0 build:document-sidebar
+> @prc/spoken-article@1.1.0 build:document-sidebar
 > wp-scripts build --source-path=./src/document-sidebar --output-path=./build/document-sidebar --webpack-copy-php
 
-asset index.js 28 KiB [compared for emit] [minimized] (name: index)
-asset index.asset.php 278 bytes [compared for emit] (name: index)
+asset index.js 28 KiB [emitted] [minimized] (name: index)
+asset index.asset.php 278 bytes [emitted] [compared for emit] (name: index)
 Entrypoint index 28.3 KiB = index.js 28 KiB index.asset.php 278 bytes
 orphan modules 51.1 KiB [orphan] 29 modules
 ./src/document-sidebar/index.tsx + 29 modules 56.6 KiB [not cacheable] [built] [code generated]
-webpack 5.106.2 compiled successfully in 2587 ms
+webpack 5.106.2 compiled successfully in 947 ms
 
-> @prc/spoken-article@1.2.0 build:interstitial-admin
+> @prc/spoken-article@1.1.0 build:interstitial-admin
 > wp-scripts build --source-path=./src/interstitial-admin --output-path=./build/interstitial-admin
 
-assets by status 166 KiB [compared for emit]
-  asset index.js 166 KiB [compared for emit] [minimized] (name: index)
-  asset index.asset.php 257 bytes [compared for emit] (name: index)
-assets by status 5.29 KiB [emitted]
+assets by chunk 166 KiB (name: index)
+  asset index.js 166 KiB [emitted] [minimized] (name: index)
+  asset index.asset.php 257 bytes [emitted] [compared for emit] (name: index)
+assets by path ./*.css 5.29 KiB
   asset ./style-index-rtl.css 2.64 KiB [emitted] (name: ./style-index) (id hint: style)
   asset ./style-index.css 2.64 KiB [emitted] (name: ./style-index) (id hint: style)
 Entrypoint index 171 KiB = ./style-index.css 2.64 KiB ./style-index-rtl.css 2.64 KiB index.js 166 KiB index.asset.php 257 bytes
@@ -110,4 +110,4 @@ built modules 467 KiB (javascript) 2.64 KiB (css/mini-extract) [built]
   modules by path ../../node_modules/ 5.84 KiB
     ../../node_modules/deepmerge/dist/cjs.js 3.95 KiB [built] [code generated]
     ../../node_modules/fast-deep-equal/es6/index.js 1.89 KiB [built] [code generated]
-webpack 5.106.2 compiled successfully in 13655 ms
+webpack 5.106.2 compiled successfully in 6524 ms
