@@ -1,5 +1,7 @@
 # PRC Spoken Article
 
+> Canonical docs: [docs/plugins/prc-spoken-article/](../../docs/plugins/prc-spoken-article/)
+
 AI-generated audio narration for posts, powered by ElevenLabs TTS with an optional AI summarization step ("Listener's Digest").
 
 ## Overview

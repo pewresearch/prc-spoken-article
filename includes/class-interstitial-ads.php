@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace PRC\Platform\Spoken_Article;
 
+use PRC\Platform\Settings_Page_Boot;
+
 class Interstitial_Ads {
 
 	const ADS_OPTION_KEY   = 'spoken_article_interstitial_ads';
@@ -219,7 +221,7 @@ class Interstitial_Ads {
 	}
 
 	public function render_admin_page(): void {
-		echo '<div class="wrap"><div id="prc-spoken-article-interstitial-admin"></div></div>';
+		Settings_Page_Boot::render( 'prc-spoken-article-interstitial-admin' );
 	}
 
 	public function enqueue_admin_assets( string $hook_suffix ): void {
@@ -277,6 +279,12 @@ class Interstitial_Ads {
 				'mediaUrl'   => rest_url( 'wp/v2/media' ),
 				'restNonce'  => wp_create_nonce( 'wp_rest' ),
 			)
+		);
+
+		Settings_Page_Boot::enqueue(
+			$handle,
+			(string) $asset['version'],
+			'prc-spoken-article-interstitial-admin'
 		);
 	}
 

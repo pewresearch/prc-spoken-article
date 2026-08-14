@@ -172,7 +172,7 @@ const AD_FORM_FIELDS: Field<InterstitialAd>[] = [
 	},
 	{
 		id: 'text',
-		type: 'textarea',
+		type: 'text',
 		label: __('Ad Copy / Transcript', 'prc-spoken-article'),
 		Edit: { control: 'textarea', rows: 6 },
 		setValue: ({ value }) => ({

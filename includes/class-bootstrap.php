@@ -45,6 +45,7 @@ class Bootstrap {
 		$this->loader = new Loader();
 
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-content-type.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-admin-dataview-lists.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-post-meta.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-rest-api.php';
 		require_once plugin_dir_path( __DIR__ ) . 'includes/class-schema.php';
@@ -88,6 +89,7 @@ class Bootstrap {
 		$this->loader->add_action( 'init', $this, 'register_default_post_type_support', 5 );
 
 		new Content_Type( $this->get_loader() );
+		new Admin_Dataview_Lists( $this->get_loader() );
 		new Post_Meta( $this->get_loader() );
 		new Rest_API( $this->get_loader() );
 		new Schema( $this->get_loader() );
