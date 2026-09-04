@@ -10,6 +10,12 @@ import {
 import { useSelect, useDispatch } from '@wordpress/data';
 import { DataForm } from '@wordpress/dataviews';
 import type { DataFormControlProps, Field } from '@wordpress/dataviews';
+import {
+	createSettingsTextareaEdit,
+	SettingsBooleanEdit,
+	SettingsNumberEdit,
+	SettingsTextEdit,
+} from '@prc/components';
 
 import { store as interstitialsStore } from '../store';
 import VoicePicker from '../../shared/voice-picker';
@@ -147,12 +153,13 @@ const AD_FORM_FIELDS: Field<InterstitialAd>[] = [
 		id: 'label',
 		type: 'text',
 		label: __('Label', 'prc-spoken-article'),
+		Edit: SettingsTextEdit,
 	},
 	{
 		id: 'isActive',
 		type: 'boolean',
 		label: __('Active', 'prc-spoken-article'),
-		Edit: 'toggle',
+		Edit: SettingsBooleanEdit,
 	},
 	{
 		id: 'weight',
@@ -163,6 +170,7 @@ const AD_FORM_FIELDS: Field<InterstitialAd>[] = [
 			'prc-spoken-article'
 		),
 		isValid: { min: 1, max: 10 },
+		Edit: SettingsNumberEdit,
 	},
 	{
 		id: 'voiceId',
@@ -174,7 +182,7 @@ const AD_FORM_FIELDS: Field<InterstitialAd>[] = [
 		id: 'text',
 		type: 'text',
 		label: __('Ad Copy / Transcript', 'prc-spoken-article'),
-		Edit: { control: 'textarea', rows: 6 },
+		Edit: createSettingsTextareaEdit(6),
 		setValue: ({ value }) => ({
 			text: value,
 			textIsDraft: true,
