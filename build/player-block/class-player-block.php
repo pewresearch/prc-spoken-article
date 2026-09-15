@@ -78,26 +78,26 @@ class Player_Block {
 
 		$block_wrapper_attrs = get_block_wrapper_attributes(
 			array(
-				'data-wp-interactive' => wp_json_encode( array( 'namespace' => 'prc-spoken-article/player' ) ),
-				'data-wp-context'     => wp_json_encode(
+				'data-wp-interactive'          => wp_json_encode( array( 'namespace' => 'prc-spoken-article/player' ) ),
+				'data-wp-context'              => wp_json_encode(
 					array(
-						'audioUrl'          => '',
-						'duration'          => '',
-						'postTitle'         => '',
-						'postUrl'           => '',
-						'postId'            => 0,
-						'playCountEndpoint' => '',
-						'hasAudio'          => false,
-						'isPlaying'         => false,
-						'isPlayerOpen'      => false,
-						'isExpanded'        => false,
-						'currentTime'       => 0,
-						'totalDuration'     => 0,
-						'playbackRate'      => 1,
-					'hasTrackedPlay'        => false,
-					'tabName'               => '',
-					'isPlayingInterstitial' => false,
-					'interstitialLabel'     => Interstitial_Ads::get_label(),
+						'audioUrl'              => '',
+						'duration'              => '',
+						'postTitle'             => '',
+						'postUrl'               => '',
+						'postId'                => 0,
+						'playCountEndpoint'     => '',
+						'hasAudio'              => false,
+						'isPlaying'             => false,
+						'isPlayerOpen'          => false,
+						'isExpanded'            => false,
+						'currentTime'           => 0,
+						'totalDuration'         => 0,
+						'playbackRate'          => 1,
+						'hasTrackedPlay'        => false,
+						'tabName'               => '',
+						'isPlayingInterstitial' => false,
+						'interstitialLabel'     => Interstitial_Ads::get_label(),
 					)
 				),
 				'data-wp-watch--pending-audio' => 'callbacks.onPendingAudio',
@@ -121,7 +121,7 @@ class Player_Block {
 							data-wp-on--click="actions.togglePlay"
 							aria-label="<?php esc_attr_e( 'Resume playback', 'prc-spoken-article' ); ?>"
 						>
-							<?php echo \PRC\Platform\Icons\render( 'solid', 'play' ); ?>
+							<?php echo \PRC\Platform\Icons\render( 'prc', 'play' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 							<?php esc_html_e( 'Resume', 'prc-spoken-article' ); ?>
 						</button>
 						<div class="spoken-article-player__header-row">
@@ -136,10 +136,10 @@ class Player_Block {
 								aria-label="<?php esc_attr_e( 'Play or pause', 'prc-spoken-article' ); ?>"
 							>
 								<span data-wp-bind--hidden="context.isPlaying">
-									<?php echo \PRC\Platform\Icons\render( 'solid', 'play' ); ?>
+									<?php echo \PRC\Platform\Icons\render( 'prc', 'play' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 								</span>
 								<span data-wp-bind--hidden="!context.isPlaying">
-									<?php echo \PRC\Platform\Icons\render( 'solid', 'pause' ); ?>
+									<?php echo \PRC\Platform\Icons\render( 'prc', 'pause' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 								</span>
 							</button>
 							<span
@@ -153,10 +153,10 @@ class Player_Block {
 									aria-label="<?php esc_attr_e( 'Save for later', 'prc-spoken-article' ); ?>"
 								>
 									<span data-wp-bind--hidden="state.isArticleSaved">
-										<?php echo \PRC\Platform\Icons\render( 'regular', 'bookmark' ); ?>
+										<?php echo \PRC\Platform\Icons\render( 'prc', 'bookmark-outline' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 									</span>
 									<span data-wp-bind--hidden="!state.isArticleSaved">
-										<?php echo \PRC\Platform\Icons\render( 'solid', 'bookmark' ); ?>
+										<?php echo \PRC\Platform\Icons\render( 'prc', 'bookmark' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 									</span>
 								</button>
 							</span>
@@ -166,7 +166,7 @@ class Player_Block {
 								aria-label="<?php esc_attr_e( 'Library', 'prc-spoken-article' ); ?>"
 								data-wp-class--is-active="state.isLibraryOpen"
 							>
-								<?php echo \PRC\Platform\Icons\render( 'solid', 'list' ); ?>
+								<?php echo \PRC\Platform\Icons\render( 'prc', 'list' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 							</button>
 							<button
 								class="spoken-article-player__expand-btn"
@@ -174,14 +174,14 @@ class Player_Block {
 								data-wp-bind--hidden="context.isExpanded"
 								aria-label="<?php esc_attr_e( 'Expand player', 'prc-spoken-article' ); ?>"
 							>
-								<?php echo \PRC\Platform\Icons\render( 'solid', 'angle-up' ); ?>
+								<?php echo \PRC\Platform\Icons\render( 'prc', 'angle-up' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 							</button>
 							<button
 								class="spoken-article-player__close-btn"
 								data-wp-on--click="actions.closePlayer"
 								aria-label="<?php esc_attr_e( 'Close player', 'prc-spoken-article' ); ?>"
 							>
-								<?php echo \PRC\Platform\Icons\render( 'solid', 'xmark' ); ?>
+								<?php echo \PRC\Platform\Icons\render( 'prc', 'xmark' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 							</button>
 						</div>
 						</div>
@@ -213,7 +213,7 @@ class Player_Block {
 								data-wp-bind--disabled="context.isPlayingInterstitial"
 								aria-label="<?php esc_attr_e( 'Skip back 15 seconds', 'prc-spoken-article' ); ?>"
 							>
-								<?php echo \PRC\Platform\Icons\render( 'solid', 'backward' ); ?>
+								<?php echo \PRC\Platform\Icons\render( 'prc', 'backward' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 								<span class="spoken-article-player__skip-label">15</span>
 							</button>
 							<button
@@ -222,10 +222,10 @@ class Player_Block {
 								aria-label="<?php esc_attr_e( 'Play or pause', 'prc-spoken-article' ); ?>"
 							>
 								<span data-wp-bind--hidden="context.isPlaying">
-									<?php echo \PRC\Platform\Icons\render( 'solid', 'play' ); ?>
+									<?php echo \PRC\Platform\Icons\render( 'prc', 'play' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 								</span>
 								<span data-wp-bind--hidden="!context.isPlaying">
-									<?php echo \PRC\Platform\Icons\render( 'solid', 'pause' ); ?>
+									<?php echo \PRC\Platform\Icons\render( 'prc', 'pause' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 								</span>
 							</button>
 							<button
@@ -234,7 +234,7 @@ class Player_Block {
 								data-wp-bind--disabled="context.isPlayingInterstitial"
 								aria-label="<?php esc_attr_e( 'Skip forward 15 seconds', 'prc-spoken-article' ); ?>"
 							>
-								<?php echo \PRC\Platform\Icons\render( 'solid', 'forward' ); ?>
+								<?php echo \PRC\Platform\Icons\render( 'prc', 'forward' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 								<span class="spoken-article-player__skip-label">15</span>
 							</button>
 						</div>
@@ -288,14 +288,14 @@ class Player_Block {
 													data-wp-on--click="actions.playFromQueue"
 													aria-label="<?php esc_attr_e( 'Play', 'prc-spoken-article' ); ?>"
 												>
-													<?php echo \PRC\Platform\Icons\render( 'solid', 'play' ); ?>
+													<?php echo \PRC\Platform\Icons\render( 'prc', 'play' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 												</button>
 												<button
 													class="spoken-article-player__library-item-btn"
 													data-wp-on--click="actions.removeFromQueue"
 													aria-label="<?php esc_attr_e( 'Remove', 'prc-spoken-article' ); ?>"
 												>
-													<?php echo \PRC\Platform\Icons\render( 'solid', 'xmark' ); ?>
+													<?php echo \PRC\Platform\Icons\render( 'prc', 'xmark' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 												</button>
 											</div>
 										</div>
@@ -322,7 +322,7 @@ class Player_Block {
 														data-wp-on--click="actions.removeArticle"
 														aria-label="<?php esc_attr_e( 'Remove', 'prc-spoken-article' ); ?>"
 													>
-														<?php echo \PRC\Platform\Icons\render( 'solid', 'xmark' ); ?>
+														<?php echo \PRC\Platform\Icons\render( 'prc', 'xmark' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 													</button>
 												</div>
 											</div>
@@ -347,7 +347,7 @@ class Player_Block {
 													data-wp-on--click="actions.playFromLibrary"
 													aria-label="<?php esc_attr_e( 'Play', 'prc-spoken-article' ); ?>"
 												>
-													<?php echo \PRC\Platform\Icons\render( 'solid', 'play' ); ?>
+													<?php echo \PRC\Platform\Icons\render( 'prc', 'play' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 												</button>
 											</div>
 										</div>
@@ -368,7 +368,7 @@ class Player_Block {
 							data-wp-on--click="actions.toggleExpand"
 							aria-label="<?php esc_attr_e( 'Collapse player', 'prc-spoken-article' ); ?>"
 						>
-							<?php echo \PRC\Platform\Icons\render( 'solid', 'minus' ); ?>
+							<?php echo \PRC\Platform\Icons\render( 'prc', 'minus' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG from the icon facade. ?>
 						</button>
 
 						<p class="spoken-article-player__disclaimer">

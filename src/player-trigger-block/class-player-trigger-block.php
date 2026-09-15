@@ -133,7 +133,7 @@ class Player_Trigger_Block {
 
 		return str_replace(
 			'<span class="prc-icon-placeholder" data-icon="solid/headphones"></span>',
-			\PRC\Platform\Icons\render( 'solid', 'headphones' ),
+			\PRC\Platform\Icons\render( 'prc', 'headphones' ),
 			$html
 		);
 	}

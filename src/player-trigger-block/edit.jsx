@@ -46,7 +46,7 @@ export default function Edit() {
 			{...blockProps}
 			aria-label={__('Listen to this article', 'prc-spoken-article')}
 		>
-			<Icon icon="headphones" library="solid" />
+			<Icon icon="headphones" library="prc" />
 			<span
 				className="spoken-article-trigger__duration"
 				style={!hasAudio ? { opacity: 0.4 } : undefined}

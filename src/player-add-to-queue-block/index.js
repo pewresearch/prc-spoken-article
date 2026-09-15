@@ -34,7 +34,7 @@ function Edit() {
 
 	return (
 		<button {...blockProps} onClick={handleClick} aria-label="Add to queue">
-			<Icon icon="list" library="solid" />
+			<Icon icon="list" library="prc" />
 			{toastKey !== null && (
 				<span key={toastKey} className="player-add-to-queue__toast">
 					Added to queue

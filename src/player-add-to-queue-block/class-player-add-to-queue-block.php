@@ -121,7 +121,7 @@ class Player_Add_To_Queue_Block {
 
 		return str_replace(
 			'<span class="prc-icon-placeholder" data-icon="solid/list"></span>',
-			\PRC\Platform\Icons\render( 'solid', 'list' ),
+			\PRC\Platform\Icons\render( 'prc', 'list' ),
 			$html
 		);
 	}
