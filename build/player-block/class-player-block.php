@@ -78,8 +78,8 @@ class Player_Block {
 
 		$block_wrapper_attrs = get_block_wrapper_attributes(
 			array(
-				'data-wp-interactive'          => wp_json_encode( array( 'namespace' => 'prc-spoken-article/player' ) ),
-				'data-wp-context'              => wp_json_encode(
+				'data-wp-interactive'           => wp_json_encode( array( 'namespace' => 'prc-spoken-article/player' ) ),
+				'data-wp-context'               => wp_json_encode(
 					array(
 						'audioUrl'              => '',
 						'duration'              => '',
@@ -100,8 +100,8 @@ class Player_Block {
 						'interstitialLabel'     => Interstitial_Ads::get_label(),
 					)
 				),
-				'data-wp-watch--pending-audio' => 'callbacks.onPendingAudio',
-				'data-wp-watch--auth-ready'    => 'callbacks.onAuthReady',
+				'data-wp-watch---pending-audio' => 'callbacks.onPendingAudio',
+				'data-wp-watch---auth-ready'    => 'callbacks.onAuthReady',
 			)
 		);
 
