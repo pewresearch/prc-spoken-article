@@ -1,28 +1,33 @@
 <?php
-declare(strict_types=1);
 /**
  * ElevenLabs API key and model resolution.
  *
  * @package PRC\Platform\Spoken_Article
  */
 
+declare(strict_types=1);
+
 namespace PRC\Platform\Spoken_Article;
 
+/**
+ * Stores the ElevenLabs API key and resolves the TTS model for each audio quality tier.
+ */
 class ElevenLabs_Settings {
 
-	public const API_KEY_CONSTANT   = 'PRC_PLATFORM_ELEVENLABS_API_KEY';
-	public const API_KEY_OPTION     = 'elevenlabs_api_key';
-	public const MODEL_OPTION       = 'elevenlabs_model';
-	public const DRAFT_MODEL_OPTION = 'elevenlabs_draft_model';
-	public const DEFAULT_MODEL      = 'eleven_multilingual_v2';
+	public const API_KEY_CONSTANT    = 'PRC_PLATFORM_ELEVENLABS_API_KEY';
+	public const API_KEY_OPTION      = 'elevenlabs_api_key';
+	public const MODEL_OPTION        = 'elevenlabs_model';
+	public const DRAFT_MODEL_OPTION  = 'elevenlabs_draft_model';
+	public const DEFAULT_MODEL       = 'eleven_multilingual_v2';
 	public const DEFAULT_DRAFT_MODEL = 'eleven_flash_v2_5';
 
 	/**
-	 * Allowed TTS model IDs.
+	 * Allowed TTS model IDs. Keep in sync with ELEVENLABS_MODELS in src/shared/elevenlabs-models.ts.
 	 *
 	 * @var string[]
 	 */
 	private const ALLOWED_MODELS = array(
+		'eleven_v4',
 		'eleven_multilingual_v2',
 		'eleven_flash_v2_5',
 		'eleven_v3',
@@ -38,10 +43,16 @@ class ElevenLabs_Settings {
 		'eleven_multilingual_v1',
 	);
 
+	/**
+	 * Whether the API key is defined via constant instead of the database.
+	 */
 	public static function is_api_key_via_constant(): bool {
 		return defined( self::API_KEY_CONSTANT ) && '' !== (string) constant( self::API_KEY_CONSTANT );
 	}
 
+	/**
+	 * Resolve the ElevenLabs API key from the constant or the stored option.
+	 */
 	public static function get_api_key(): string {
 		if ( self::is_api_key_via_constant() ) {
 			return (string) constant( self::API_KEY_CONSTANT );
@@ -50,8 +61,33 @@ class ElevenLabs_Settings {
 		return (string) get_option( self::API_KEY_OPTION, '' );
 	}
 
+	/**
+	 * Whether an ElevenLabs API key is available.
+	 */
 	public static function is_connected(): bool {
 		return '' !== self::get_api_key();
+	}
+
+	/**
+	 * List the TTS model IDs the plugin accepts.
+	 *
+	 * @return string[]
+	 */
+	public static function get_allowed_models(): array {
+		return self::ALLOWED_MODELS;
+	}
+
+	/**
+	 * Sanitize a model ID from a REST request.
+	 *
+	 * Unknown or deprecated IDs return an empty string so the caller falls back to the configured model.
+	 *
+	 * @param string $model Candidate model ID.
+	 */
+	public static function sanitize_requested_model( string $model ): string {
+		$model = sanitize_text_field( $model );
+
+		return in_array( $model, self::ALLOWED_MODELS, true ) ? $model : '';
 	}
 
 	/**
@@ -83,10 +119,16 @@ class ElevenLabs_Settings {
 		return $default;
 	}
 
+	/**
+	 * Production TTS model ID.
+	 */
 	public static function get_model(): string {
 		return self::get_production_model();
 	}
 
+	/**
+	 * Production TTS model ID from the stored option.
+	 */
 	public static function get_production_model(): string {
 		$stored = get_option( self::MODEL_OPTION, self::DEFAULT_MODEL );
 		if ( ! is_string( $stored ) ) {
@@ -96,6 +138,9 @@ class ElevenLabs_Settings {
 		return self::coerce_model( $stored, self::DEFAULT_MODEL );
 	}
 
+	/**
+	 * Draft TTS model ID from the stored option.
+	 */
 	public static function get_draft_model(): string {
 		$stored = get_option( self::DRAFT_MODEL_OPTION, self::DEFAULT_DRAFT_MODEL );
 		if ( ! is_string( $stored ) ) {
@@ -118,6 +163,9 @@ class ElevenLabs_Settings {
 		return self::get_production_model();
 	}
 
+	/**
+	 * Rewrite stored model options that are deprecated or invalid.
+	 */
 	public static function maybe_migrate_model_option(): void {
 		foreach ( array( self::MODEL_OPTION, self::DRAFT_MODEL_OPTION ) as $option_key ) {
 			$default = self::MODEL_OPTION === $option_key ? self::DEFAULT_MODEL : self::DEFAULT_DRAFT_MODEL;

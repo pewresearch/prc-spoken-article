@@ -151,7 +151,7 @@ class Rest_API {
 					),
 					'model_id'       => array(
 						'type'              => 'string',
-						'sanitize_callback' => 'sanitize_text_field',
+						'sanitize_callback' => array( ElevenLabs_Settings::class, 'sanitize_requested_model' ),
 					),
 					'voice_settings' => array(
 						'type' => 'object',
@@ -166,9 +166,7 @@ class Rest_API {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_tts_text_endpoint' ),
-				'permission_callback' => function () {
-					return current_user_can( 'edit_posts' );
-				},
+				'permission_callback' => array( $this, 'can_read_tts_text' ),
 				'args'                => array(
 					'post_id'        => array(
 						'required'          => true,
@@ -195,9 +193,7 @@ class Rest_API {
 				array(
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_spoken_article_for_post' ),
-					'permission_callback' => function () {
-						return current_user_can( 'edit_posts' );
-					},
+					'permission_callback' => array( $this, 'can_edit_source_post' ),
 					'args'                => array(
 						'post_id' => array(
 							'required'          => true,
@@ -209,9 +205,7 @@ class Rest_API {
 				array(
 					'methods'             => \WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'create_spoken_article_for_post' ),
-					'permission_callback' => function () {
-						return current_user_can( 'edit_posts' );
-					},
+					'permission_callback' => array( $this, 'can_edit_source_post' ),
 					'args'                => array(
 						'post_id'        => array(
 							'required'          => true,
@@ -232,9 +226,7 @@ class Rest_API {
 				array(
 					'methods'             => \WP_REST_Server::DELETABLE,
 					'callback'            => array( $this, 'delete_spoken_article_for_post' ),
-					'permission_callback' => function () {
-						return current_user_can( 'delete_posts' );
-					},
+					'permission_callback' => array( $this, 'can_delete_spoken_article' ),
 					'args'                => array(
 						'post_id' => array(
 							'required'          => true,
@@ -245,6 +237,73 @@ class Rest_API {
 				),
 			)
 		);
+	}
+
+	/**
+	 * Post id from a route that is scoped to one post.
+	 *
+	 * A missing or non-numeric id becomes 0. current_user_can() denies that id.
+	 *
+	 * @param \WP_REST_Request $request Request object.
+	 * @return int
+	 */
+	private function request_post_id( $request ): int {
+		if ( ! $request instanceof \ArrayAccess ) {
+			return 0;
+		}
+		return (int) ( $request['post_id'] ?? 0 );
+	}
+
+	/**
+	 * Whether the current user can edit the post this request names.
+	 *
+	 * @param \WP_REST_Request $request Request object.
+	 * @return bool
+	 */
+	public function can_edit_source_post( $request ): bool {
+		return current_user_can( 'edit_post', $this->request_post_id( $request ) );
+	}
+
+	/**
+	 * Whether the current user can read TTS text for this request.
+	 *
+	 * A spoken-article id returns its parent post's text, so the check is
+	 * edit_post on that parent. Any other id is checked as itself.
+	 *
+	 * @param \WP_REST_Request $request Request object.
+	 * @return bool
+	 */
+	public function can_read_tts_text( $request ): bool {
+		$post_id = $this->request_post_id( $request );
+		$post    = get_post( $post_id );
+		if ( $post instanceof \WP_Post
+			&& Content_Type::POST_TYPE === $post->post_type
+			&& (int) $post->post_parent > 0 ) {
+			$post_id = (int) $post->post_parent;
+		}
+		return current_user_can( 'edit_post', $post_id );
+	}
+
+	/**
+	 * Whether the current user can trash the spoken article for this request.
+	 *
+	 * The route is addressed by the source post. The post that is trashed is
+	 * the spoken-article CPT. Both objects must allow the action. A missing
+	 * source post or spoken article fails closed.
+	 *
+	 * @param \WP_REST_Request $request Request object.
+	 * @return bool
+	 */
+	public function can_delete_spoken_article( $request ): bool {
+		$post_id = $this->request_post_id( $request );
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return false;
+		}
+		$spoken_article = Content_Type::get_spoken_article_for_post( $post_id );
+		if ( ! $spoken_article instanceof \WP_Post ) {
+			return false;
+		}
+		return current_user_can( 'delete_post', (int) $spoken_article->ID );
 	}
 
 	/**

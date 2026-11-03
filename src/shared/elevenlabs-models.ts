@@ -13,7 +13,20 @@ export const ELEVENLABS_MODEL_FIELD_HELP = __(
 	'prc-spoken-article'
 );
 
+// Keep in sync with ElevenLabs_Settings::ALLOWED_MODELS in includes/class-elevenlabs-settings.php.
 export const ELEVENLABS_MODELS = [
+	{
+		value: 'eleven_v4',
+		label: __('Eleven v4', 'prc-spoken-article'),
+		optionLabel: __(
+			'Eleven v4 — newest, most expressive model',
+			'prc-spoken-article'
+		),
+		description: __(
+			'ElevenLabs flagship model with the most expressive delivery and most accurate voice cloning (~10k characters per request). Test it against Multilingual v2 on your own content before switching.',
+			'prc-spoken-article'
+		),
+	},
 	{
 		value: 'eleven_multilingual_v2',
 		label: __('Multilingual v2', 'prc-spoken-article'),

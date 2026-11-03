@@ -1,3 +1,5 @@
+/* eslint-disable prc/inspector-button-full-width, @wordpress/components-no-missing-40px-size-prop -- Existing Button sizing; migrating changes rendered layout. */
+
 /**
  * WordPress Dependencies
  */
@@ -23,7 +25,7 @@ import VoicePicker from '../shared/voice-picker';
 import {
 	useInterstitialAudioActions,
 	type InterstitialMeta,
-} from '../sidebar/use-interstitial-audio-actions';
+} from './use-interstitial-audio-actions';
 
 interface InterstitialPanelProps {
 	interstitial: InterstitialMeta;
@@ -103,6 +105,7 @@ export default function InterstitialPanel({
 						<PanelRow>
 							<Notice status="warning" isDismissible={false}>
 								{sprintf(
+									/* translators: %s: name of the editor currently generating audio. */
 									__(
 										'%s is generating audio for this post. Try again when they finish.',
 										'prc-spoken-article'
@@ -131,11 +134,11 @@ export default function InterstitialPanel({
 										? __(
 												'Change Voice',
 												'prc-spoken-article'
-										  )
+											)
 										: __(
 												'Select Voice…',
 												'prc-spoken-article'
-										  )}
+											)}
 								</Button>
 							)}
 							renderContent={({ onClose }) => (

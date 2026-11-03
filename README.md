@@ -23,8 +23,8 @@ Editors generate spoken versions of articles from the block editor sidebar. The 
 
 ### Environment Variables
 
-| Variable | Description | Where to get it |
-|----------|-------------|-----------------|
+| Variable                          | Description        | Where to get it                                                        |
+| --------------------------------- | ------------------ | ---------------------------------------------------------------------- |
 | `PRC_PLATFORM_ELEVENLABS_API_KEY` | ElevenLabs API key | Defined in `vip-config/keys-and-tokens.php`, sourced from VIP env vars |
 
 ### Build & Dev
@@ -38,8 +38,11 @@ npx turbo build --filter=@prc/spoken-article
 # Watch player block
 npm run start -w @prc/spoken-article
 
-# Watch sidebar panel
-npm run start:sidebar -w @prc/spoken-article
+# Watch parent sidebar
+npm run start:parent-sidebar -w @prc/spoken-article
+
+# Watch document sidebar
+npm run start:document-sidebar -w @prc/spoken-article
 ```
 
 Entry points include `player-block`, `parent-sidebar`, `document-sidebar`, and `interstitial-admin` (Spoken Article → **Settings** admin UI).
@@ -67,17 +70,17 @@ src/
 
 ### Key Classes
 
-| Class | Responsibility |
-|-------|----------------|
-| `Bootstrap` | Wires all classes, registers `prc-spoken-article` post type support for `post` |
-| `Post_Meta` | Registers `spoken_article` (object) and `spoken_article_play_count` (int) meta |
-| `Rest_API` | Play count, TTS text, ElevenLabs proxy routes, spoken-article CPT helpers |
-| `ElevenLabs_Settings` | Resolves API key (constant vs option), draft/production models, admin payload |
-| `ElevenLabs_TTS` | POSTs to ElevenLabs from PHP; used by `/elevenlabs/tts` |
-| `Interstitial_Ads` | **Spoken Article → Settings** React admin; `GET/POST /interstitial-ads` |
-| `Schema` | Adds `AudioObject` to post schema via `prc_schema_seo_post_schema` filter |
-| `WP_Admin` | Enqueues sidebar assets, localizes ElevenLabs config and REST endpoints |
-| `Player_Block` | Registers the `prc-spoken-article/player` block (server-rendered from post meta) |
+| Class                 | Responsibility                                                                   |
+| --------------------- | -------------------------------------------------------------------------------- |
+| `Bootstrap`           | Wires all classes, registers `prc-spoken-article` post type support for `post`   |
+| `Post_Meta`           | Registers `spoken_article` (object) and `spoken_article_play_count` (int) meta   |
+| `Rest_API`            | Play count, TTS text, ElevenLabs proxy routes, spoken-article CPT helpers        |
+| `ElevenLabs_Settings` | Resolves API key (constant vs option), draft/production models, admin payload    |
+| `ElevenLabs_TTS`      | POSTs to ElevenLabs from PHP; used by `/elevenlabs/tts`                          |
+| `Interstitial_Ads`    | **Spoken Article → Settings** React admin; `GET/POST /interstitial-ads`          |
+| `Schema`              | Adds `AudioObject` to post schema via `prc_schema_seo_post_schema` filter        |
+| `WP_Admin`            | Enqueues sidebar assets, localizes ElevenLabs config and REST endpoints          |
+| `Player_Block`        | Registers the `prc-spoken-article/player` block (server-rendered from post meta) |
 
 ### Data Flow
 
@@ -91,33 +94,38 @@ src/
 
 Namespace: `prc-spoken-article/v1`
 
-| Method | Route | Auth | Purpose |
-|--------|-------|------|---------|
-| POST | `/play-count/{post_id}` | Public | Increment play count |
-| POST | `/voice` | `manage_options` | Save default ElevenLabs voice ID |
-| GET/POST | `/interstitial-ads` | `manage_options` | Read/save global interstitial ads + ElevenLabs site settings |
-| GET | `/interstitial-for-post/{post_id}` | Public | Resolve interstitial audio for the player |
-| GET | `/elevenlabs/voices` | `edit_posts` | Proxied voice list (cached 1 day; `?refresh=1` for `manage_options`) |
-| GET | `/elevenlabs/voices/{voice_id}` | `edit_posts` | Proxied single voice (cached 1 day) |
-| POST | `/elevenlabs/tts` | `edit_posts` | Proxied TTS; returns raw `audio/mpeg` |
-| GET | `/tts-text/{post_id}` | `edit_posts` | Return TTS-ready text for a post |
+| Method   | Route                              | Auth                                                                   | Purpose                                                                       |
+| -------- | ---------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| POST     | `/play-count/{post_id}`            | Public                                                                 | Increment play count                                                          |
+| POST     | `/voice`                           | `manage_options`                                                       | Save default ElevenLabs voice ID                                              |
+| GET/POST | `/interstitial-ads`                | `manage_options`                                                       | Read/save global interstitial ads + ElevenLabs site settings                  |
+| GET      | `/interstitial-for-post/{post_id}` | Public                                                                 | Resolve interstitial audio for the player                                     |
+| GET      | `/elevenlabs/voices`               | `edit_posts`                                                           | Proxied voice list (cached 1 day; `?refresh=1` for `manage_options`)          |
+| GET      | `/elevenlabs/voices/{voice_id}`    | `edit_posts`                                                           | Proxied single voice (cached 1 day)                                           |
+| POST     | `/elevenlabs/tts`                  | `edit_posts`                                                           | Proxied TTS; returns raw `audio/mpeg`                                         |
+| GET      | `/tts-text/{post_id}`              | `edit_post` on the post whose text is returned                         | Return TTS-ready text for a post. A spoken-article id checks the parent post. |
+| GET      | `/spoken-article-for/{post_id}`    | `edit_post` on the source post                                         | Read the spoken article for a post                                            |
+| POST     | `/spoken-article-for/{post_id}`    | `edit_post` on the source post                                         | Create a spoken article for a post                                            |
+| DELETE   | `/spoken-article-for/{post_id}`    | `edit_post` on the source post and `delete_post` on the spoken article | Trash the spoken article for a post                                           |
+
+The `prc-spoken-article/generate` ability requires `edit_post` on its `post_id`. When `post_id` is a spoken article, it also requires `edit_post` on the source post.
 
 ### Data Storage
 
-| Type | Key | Shape | Purpose |
-|------|-----|-------|---------|
-| Post meta | `spoken_article` | `{ attachment_id, audio_url, duration }` | Audio file reference |
-| Post meta | `spoken_article_play_count` | `int` | Frontend play count |
-| Post meta | `spoken_article_voice_id` | `string` | Per-article ElevenLabs voice override |
-| Post meta | `spoken_article_audio_quality` | `string` | Attached audio tier: `draft`, `production`, or empty |
-| Post meta | `spoken_article_model` | `string` | Legacy per-article model override (deprecated; site tiers used instead) |
-| Option | `elevenlabs_api_key` | `string` | ElevenLabs API key (fallback when `PRC_PLATFORM_ELEVENLABS_API_KEY` is not defined) |
-| Option | `elevenlabs_voice_id` | `string` | Selected ElevenLabs voice |
-| Option | `elevenlabs_draft_model` | `string` | Draft TTS model (default: `eleven_flash_v2_5`) |
-| Option | `elevenlabs_model` | `string` | Production TTS model (default: `eleven_multilingual_v2`) |
-| Option | `elevenlabs_stability` | `float` | Voice stability (default: `0.5`) |
-| Option | `elevenlabs_similarity_boost` | `float` | Similarity boost (default: `0.75`) |
-| Session storage | `prc-spoken-article-playback` | JSON | Playback position/rate, expires after 24h |
+| Type            | Key                            | Shape                                    | Purpose                                                                             |
+| --------------- | ------------------------------ | ---------------------------------------- | ----------------------------------------------------------------------------------- |
+| Post meta       | `spoken_article`               | `{ attachment_id, audio_url, duration }` | Audio file reference                                                                |
+| Post meta       | `spoken_article_play_count`    | `int`                                    | Frontend play count                                                                 |
+| Post meta       | `spoken_article_voice_id`      | `string`                                 | Per-article ElevenLabs voice override                                               |
+| Post meta       | `spoken_article_audio_quality` | `string`                                 | Attached audio tier: `draft`, `production`, or empty                                |
+| Post meta       | `spoken_article_model`         | `string`                                 | Legacy per-article model override (deprecated; site tiers used instead)             |
+| Option          | `elevenlabs_api_key`           | `string`                                 | ElevenLabs API key (fallback when `PRC_PLATFORM_ELEVENLABS_API_KEY` is not defined) |
+| Option          | `elevenlabs_voice_id`          | `string`                                 | Selected ElevenLabs voice                                                           |
+| Option          | `elevenlabs_draft_model`       | `string`                                 | Draft TTS model (default: `eleven_flash_v2_5`)                                      |
+| Option          | `elevenlabs_model`             | `string`                                 | Production TTS model (default: `eleven_multilingual_v2`)                            |
+| Option          | `elevenlabs_stability`         | `float`                                  | Voice stability (default: `0.5`)                                                    |
+| Option          | `elevenlabs_similarity_boost`  | `float`                                  | Similarity boost (default: `0.75`)                                                  |
+| Session storage | `prc-spoken-article-playback`  | JSON                                     | Playback position/rate, expires after 24h                                           |
 
 ### Post Type Support
 
@@ -133,10 +141,12 @@ All meta registration, sidebar visibility, and schema output key off this flag.
 
 Site-wide ElevenLabs configuration lives on **Spoken Article → Settings** (`edit.php?post_type=spoken-article&page=spoken-article-interstitials`). The screen uses the shared DataForm/settings pattern and persists via `POST /interstitial-ads` (models and API key are saved in the same request as interstitial ads).
 
-| Tier | Option | Default model | Typical use |
-|------|--------|---------------|-------------|
-| Draft | `elevenlabs_draft_model` | `eleven_flash_v2_5` | Fast preview audio in the editor |
-| Production | `elevenlabs_model` | `eleven_multilingual_v2` | Published spoken-article audio |
+| Tier       | Option                   | Default model            | Typical use                      |
+| ---------- | ------------------------ | ------------------------ | -------------------------------- |
+| Draft      | `elevenlabs_draft_model` | `eleven_flash_v2_5`      | Fast preview audio in the editor |
+| Production | `elevenlabs_model`       | `eleven_multilingual_v2` | Published spoken-article audio   |
+
+Both tiers accept `eleven_v4`, `eleven_multilingual_v2`, `eleven_flash_v2_5`, and `eleven_v3`. Saved values from older installs keep working. Deprecated IDs fall back to the tier default. `eleven_v4` is the only model added in this release. `eleven_v4_turbo` and `eleven_v3_conversational` are not offered because ElevenLabs does not document them for the Create speech endpoint.
 
 Per-article `spoken_article_audio_quality` (`draft` or `production`) selects which model the generation flow passes to `/elevenlabs/tts`. Voice previews in the picker also use the proxied TTS route so the API key never ships to the browser.
 
@@ -144,8 +154,8 @@ Per-article `spoken_article_audio_quality` (`draft` or `production`) selects whi
 
 ### Filters provided
 
-| Filter | Parameters | Purpose |
-|--------|------------|---------|
+| Filter                       | Parameters                     | Purpose                                          |
+| ---------------------------- | ------------------------------ | ------------------------------------------------ |
 | `prc_schema_seo_post_schema` | `$schema, $post_id, $seo_data` | Adds AudioObject when spoken article meta exists |
 
 ## Gotchas

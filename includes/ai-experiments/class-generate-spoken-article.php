@@ -84,9 +84,7 @@ class Generate_Spoken_Article {
 					),
 				),
 				'execute_callback'    => array( $this, 'execute' ),
-				'permission_callback' => function () {
-					return current_user_can( 'edit_posts' );
-				},
+				'permission_callback' => array( $this, 'can_generate' ),
 				'meta'                => array(
 					'annotations'    => array(
 						'instructions' => 'This ability extracts text from a WordPress post and generates AI-narrated audio using ElevenLabs API.',
@@ -99,6 +97,30 @@ class Generate_Spoken_Article {
 				),
 			)
 		);
+	}
+
+	/**
+	 * Whether the current user can generate audio for the requested post.
+	 *
+	 * The ability reads the source post and writes to its spoken article.
+	 * When the input names a spoken article, the caller must be able to edit
+	 * it and its source post.
+	 *
+	 * @param mixed $input Ability input.
+	 * @return bool
+	 */
+	public function can_generate( $input = null ) {
+		$post_id = is_array( $input ) ? absint( $input['post_id'] ?? 0 ) : 0;
+		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+			return false;
+		}
+
+		$post = get_post( $post_id );
+		if ( $post && Content_Type::POST_TYPE === $post->post_type && $post->post_parent > 0 ) {
+			return current_user_can( 'edit_post', (int) $post->post_parent );
+		}
+
+		return true;
 	}
 
 	/**
