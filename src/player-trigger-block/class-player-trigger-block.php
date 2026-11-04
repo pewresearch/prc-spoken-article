@@ -13,7 +13,9 @@ use WP_Block;
 use WP_HTML_Tag_Processor;
 
 /**
- * Renders the inline trigger button that opens the spoken article player.
+ * Renders the trigger that opens the spoken article player. The trigger wraps
+ * its inner blocks; a core/button link inside it, or else the whole inner
+ * content, starts playback.
  * Queries the spoken-article CPT for audio data, respects the player-enabled toggle.
  */
 class Player_Trigger_Block {
@@ -120,21 +122,113 @@ class Player_Trigger_Block {
 			return '';
 		}
 
-		$tags = new WP_HTML_Tag_Processor( $content );
-		if ( $tags->next_tag( 'button' ) ) {
-			$tags->set_attribute( 'data-wp-interactive', wp_json_encode( array( 'namespace' => 'prc-spoken-article/player' ) ) );
-			$tags->set_attribute( 'data-wp-context', wp_json_encode( $context ) );
-			$tags->set_attribute( 'data-wp-on--click', 'actions.requestPlay' );
-		}
-		if ( $tags->next_tag( array( 'class_name' => 'spoken-article-trigger__duration' ) ) ) {
-			$tags->set_attribute( 'data-wp-text', 'context.duration' );
-		}
-		$html = $tags->get_updated_html();
+		$aria_label = '' !== $context['duration']
+			/* translators: %s: audio runtime, e.g. 4:12. */
+			? sprintf( __( 'Listen to this article, %s', 'prc-spoken-article' ), $context['duration'] )
+			: __( 'Listen to this article', 'prc-spoken-article' );
 
-		return str_replace(
-			'<span class="prc-icon-placeholder" data-icon="solid/headphones"></span>',
-			\PRC\Platform\Icons\render( 'prc', 'headphones' ),
-			$html
+		if ( self::is_legacy_markup( $content ) ) {
+			$content = self::render_default_template();
+		}
+
+		$inner = self::bind_button_link( $content, $aria_label, $context['duration'] );
+		if ( null === $inner ) {
+			$inner = sprintf(
+				'<div class="wp-block-prc-spoken-article-player-trigger__target" role="button" tabindex="0" aria-label="%1$s" data-wp-on--click="actions.requestPlay" data-wp-on--keydown="actions.onTriggerKeydown">%2$s</div>',
+				esc_attr( $aria_label ),
+				$content
+			);
+		}
+
+		$wrapper_attributes = get_block_wrapper_attributes(
+			array(
+				'data-wp-interactive' => wp_json_encode( array( 'namespace' => 'prc-spoken-article/player' ) ),
+				'data-wp-context'     => wp_json_encode( $context ),
+			)
 		);
+
+		return sprintf(
+			'<div %1$s>%2$s</div>',
+			$wrapper_attributes,
+			$inner
+		);
+	}
+
+	/**
+	 * Whether the content is the static button the block saved before it
+	 * became an InnerBlocks wrapper. Posts keep that markup until an editor
+	 * opens and re-saves them.
+	 *
+	 * @param string $content Saved block HTML.
+	 * @return bool
+	 */
+	private static function is_legacy_markup( $content ) {
+		$tags = new WP_HTML_Tag_Processor( $content );
+		return $tags->next_tag( array( 'class_name' => 'spoken-article-trigger__duration' ) );
+	}
+
+	/**
+	 * Render the editor's default inner blocks: a Listen button with a headphones icon.
+	 *
+	 * @return string Rendered HTML.
+	 */
+	private static function render_default_template() {
+		$button_attrs = wp_json_encode(
+			array(
+				'tagName'      => 'button',
+				'hasIcon'      => true,
+				'iconLibrary'  => 'prc',
+				'iconName'     => 'headphones',
+				'iconPosition' => 'left',
+			)
+		);
+
+		return do_blocks(
+			sprintf(
+				'<!-- wp:buttons --><div class="wp-block-buttons"><!-- wp:button %1$s --><div class="wp-block-button"><button type="button" class="wp-block-button__link wp-element-button">%2$s</button></div><!-- /wp:button --></div><!-- /wp:buttons -->',
+				$button_attrs,
+				esc_html__( 'Listen', 'prc-spoken-article' )
+			)
+		);
+	}
+
+	/**
+	 * Wire the first core/button link in the inner content to the player.
+	 *
+	 * The Tag Processor can only change attributes, so the visible runtime is
+	 * drawn by CSS from data-spoken-article-duration.
+	 *
+	 * @param string $content    Inner blocks HTML.
+	 * @param string $aria_label Accessible label for the link.
+	 * @param string $duration   Audio runtime, e.g. 4:12.
+	 * @return string|null Updated HTML, or null when the content has no button link.
+	 */
+	private static function bind_button_link( $content, $aria_label, $duration ) {
+		$tags = new WP_HTML_Tag_Processor( $content );
+		while ( $tags->next_tag() ) {
+			if ( ! in_array( $tags->get_tag(), array( 'A', 'BUTTON' ), true ) || ! $tags->has_class( 'wp-block-button__link' ) ) {
+				continue;
+			}
+
+			$tags->set_attribute( 'data-wp-on--click', 'actions.requestPlay' );
+			$tags->set_attribute( 'aria-label', $aria_label );
+			if ( '' !== $duration ) {
+				$tags->set_attribute( 'data-spoken-article-duration', $duration );
+			}
+
+			if ( 'A' === $tags->get_tag() ) {
+				$href = trim( (string) $tags->get_attribute( 'href' ) );
+				if ( '' === $href || '#' === $href ) {
+					$tags->remove_attribute( 'href' );
+					$tags->set_attribute( 'role', 'button' );
+					$tags->set_attribute( 'tabindex', '0' );
+					$tags->set_attribute( 'data-wp-on--keydown', 'actions.onTriggerKeydown' );
+				}
+			}
+
+			return $tags->get_updated_html();
+		}
+
+		return null;
 	}
 }

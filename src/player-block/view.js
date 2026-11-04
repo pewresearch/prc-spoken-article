@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+/* global gtag */
 /**
  * WordPress Dependencies
  */
@@ -30,6 +31,11 @@ let lastSaveTime = 0;
 let pendingHistoryEntry = null;
 let savedArticleTitle = '';
 let pendingInterstitialAudioUrl = '';
+
+// queueEnabled comes from server state; a page without it keeps the queue on.
+function isQueueEnabled() {
+	return state.queueEnabled !== false;
+}
 
 const { state, actions } = store('prc-spoken-article/player', {
 	state: {
@@ -136,6 +142,14 @@ const { state, actions } = store('prc-spoken-article/player', {
 			};
 		},
 
+		onTriggerKeydown(event) {
+			if (event.key !== 'Enter' && event.key !== ' ') {
+				return;
+			}
+			event.preventDefault();
+			actions.requestPlay();
+		},
+
 		closePlayer() {
 			const context = getContext();
 			const audio = getAudio();
@@ -170,13 +184,13 @@ const { state, actions } = store('prc-spoken-article/player', {
 		},
 
 		togglePlay() {
-			const context = getContext();
 			const audio = getAudio();
-			const dialog = getDialog();
-
 			if (!audio) {
 				return;
 			}
+
+			const context = getContext();
+			const dialog = getDialog();
 
 			if (!dialog?.open) {
 				dialog?.show();
@@ -250,7 +264,7 @@ const { state, actions } = store('prc-spoken-article/player', {
 				context.postTitle = savedArticleTitle;
 				savedArticleTitle = '';
 
-				if (state.queue.length > 0) {
+				if (isQueueEnabled() && state.queue.length > 0) {
 					const next = state.queue[0];
 					state.queue = state.queue.slice(1);
 					saveQueue(state.queue);
@@ -291,7 +305,7 @@ const { state, actions } = store('prc-spoken-article/player', {
 				return;
 			}
 
-			if (state.queue.length > 0) {
+			if (isQueueEnabled() && state.queue.length > 0) {
 				const next = state.queue[0];
 				state.queue = state.queue.slice(1);
 				saveQueue(state.queue);
@@ -318,11 +332,11 @@ const { state, actions } = store('prc-spoken-article/player', {
 
 		seek() {
 			const context = getContext();
-			const { ref } = getElement();
 			const audio = getAudio();
 			if (!audio || !context.totalDuration) {
 				return;
 			}
+			const { ref } = getElement();
 			const percent = parseFloat(ref.value);
 			audio.currentTime = (percent / 100) * context.totalDuration;
 			context.currentTime = audio.currentTime;
@@ -382,6 +396,9 @@ const { state, actions } = store('prc-spoken-article/player', {
 		},
 
 		addToQueue() {
+			if (!isQueueEnabled()) {
+				return;
+			}
 			const ctx = getContext();
 			const item = {
 				audioUrl: ctx.audioUrl,
@@ -411,7 +428,7 @@ const { state, actions } = store('prc-spoken-article/player', {
 		removeFromQueue() {
 			const ctx = getContext();
 			const postId = ctx.item?.postId;
-			if (postId == null) {
+			if (postId === null || postId === undefined) {
 				return;
 			}
 			state.queue = state.queue.filter((q) => q.postId !== postId);
@@ -421,7 +438,7 @@ const { state, actions } = store('prc-spoken-article/player', {
 		playFromQueue() {
 			const ctx = getContext();
 			const postId = ctx.item?.postId;
-			if (postId == null) {
+			if (postId === null || postId === undefined) {
 				return;
 			}
 			const idx = state.queue.findIndex((q) => q.postId === postId);
@@ -580,19 +597,23 @@ const { state, actions } = store('prc-spoken-article/player', {
 			}
 			restored = true;
 
-			const ctx = getContext();
 			const { ref } = getElement();
 			setBlockRoot(ref);
 
 			registerMediaSessionHandlers(ref);
 
-			state.queue = loadQueue();
+			if (isQueueEnabled()) {
+				state.queue = loadQueue();
+			} else {
+				state.libraryTab = 'saved';
+			}
 
 			const saved = getSavedState();
 			if (!saved || !saved.audioUrl) {
 				return;
 			}
 
+			const ctx = getContext();
 			ctx.audioUrl = saved.audioUrl;
 			ctx.postTitle = saved.postTitle || '';
 			ctx.postUrl = saved.postUrl || '';

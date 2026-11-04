@@ -14,12 +14,13 @@ One instance per post (`multiple: false`). Audio data comes from post meta, not 
 - **Category**: Media
 - **Context**: `postId`
 - **Supports**: anchor, spacing (margin top/bottom, padding)
+- **Attributes**: `enableQueue` (boolean, default `true`). When `false`, the player omits the Queue tab, does not auto-advance, ignores the session queue, and sets `state.queueEnabled` to `false` so add-to-queue blocks hide.
 
 ## Frontend Player
 
 The player uses the `prc-spoken-article/player` Interactivity API store. Features:
 
-- Trigger button (headphones icon + duration) that opens a `<dialog>` player
+- Opens a `<dialog>` player from the trigger block (`actions.requestPlay`, or `actions.onTriggerKeydown` for non-button triggers)
 - Play/pause, seek slider, skip ±15s
 - Playback speed control (0.5x–2x)
 - Expand/collapse for compact or full layout
@@ -31,22 +32,22 @@ The player uses the `prc-spoken-article/player` Interactivity API store. Feature
 
 The block is dynamic — `save.js` returns `null`. PHP renders the player template from post meta:
 
-| Meta key | Field | Purpose |
-|----------|-------|---------|
-| `spoken_article` | `attachment_id` | Media library attachment ID |
-| `spoken_article` | `audio_url` | Direct URL to the audio file |
-| `spoken_article` | `duration` | Human-readable duration (e.g. `"4:32"`) |
+| Meta key         | Field           | Purpose                                 |
+| ---------------- | --------------- | --------------------------------------- |
+| `spoken_article` | `attachment_id` | Media library attachment ID             |
+| `spoken_article` | `audio_url`     | Direct URL to the audio file            |
+| `spoken_article` | `duration`      | Human-readable duration (e.g. `"4:32"`) |
 
 If `attachment_id` or `audio_url` is missing, the block renders nothing.
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `block.json` | Block metadata |
-| `class-player-block.php` | PHP registration and render callback |
-| `edit.jsx` | Editor preview (shows duration or "no audio" placeholder) |
-| `index.js` | Block registration |
-| `view.js` | Interactivity API store (all frontend playback logic) |
-| `style.scss` | Frontend styles |
-| `editor.scss` | Editor-only styles |
+| File                     | Purpose                                                   |
+| ------------------------ | --------------------------------------------------------- |
+| `block.json`             | Block metadata                                            |
+| `class-player-block.php` | PHP registration and render callback                      |
+| `edit.jsx`               | Editor preview (shows duration or "no audio" placeholder) |
+| `index.js`               | Block registration                                        |
+| `view.js`                | Interactivity API store (all frontend playback logic)     |
+| `style.scss`             | Frontend styles                                           |
+| `editor.scss`            | Editor-only styles                                        |

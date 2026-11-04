@@ -5,13 +5,14 @@
   "version": "0.1.0",
   "title": "Spoken Article Trigger",
   "category": "media",
-  "description": "Inline trigger button that opens the spoken article player when audio is available",
+  "description": "Wraps a button or other blocks that open the spoken article player when audio is available",
   "usesContext": [
     "postId"
   ],
   "supports": {
     "anchor": true,
     "html": false,
+    "interactivity": true,
     "multiple": false,
     "reusable": false,
     "color": {

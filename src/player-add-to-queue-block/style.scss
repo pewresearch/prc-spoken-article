@@ -12,6 +12,10 @@
 		color 0.15s,
 		background 0.15s;
 
+	&[hidden] {
+		display: none;
+	}
+
 	svg {
 		fill: currentColor;
 		width: 14px;

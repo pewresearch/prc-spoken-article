@@ -76,6 +76,15 @@ class Player_Block {
 			return '';
 		}
 
+		$enable_queue = (bool) ( $attributes['enableQueue'] ?? true );
+		wp_interactivity_state(
+			'prc-spoken-article/player',
+			array(
+				'queueEnabled' => $enable_queue,
+				'libraryTab'   => $enable_queue ? 'queue' : 'saved',
+			)
+		);
+
 		$block_wrapper_attrs = get_block_wrapper_attributes(
 			array(
 				'data-wp-interactive'           => wp_json_encode( array( 'namespace' => 'prc-spoken-article/player' ) ),
@@ -248,12 +257,14 @@ class Player_Block {
 
 						<div class="spoken-article-player__library" data-wp-bind--hidden="!state.isLibraryOpen">
 							<div class="spoken-article-player__library-tabs">
+								<?php if ( $enable_queue ) : ?>
 								<button
 									class="spoken-article-player__library-tab"
 									data-wp-context='<?php echo wp_json_encode( array( 'tabName' => 'queue' ) ); ?>'
 									data-wp-on--click="actions.setLibraryTab"
 									data-wp-class--is-active-tab="state.isQueueTab"
 								><?php esc_html_e( 'Queue', 'prc-spoken-article' ); ?></button>
+								<?php endif; ?>
 								<button
 									class="spoken-article-player__library-tab"
 									data-wp-context='<?php echo wp_json_encode( array( 'tabName' => 'saved' ) ); ?>'
@@ -271,6 +282,7 @@ class Player_Block {
 							</div>
 
 							<div class="spoken-article-player__library-content">
+								<?php if ( $enable_queue ) : ?>
 								<!-- Queue tab -->
 								<div class="spoken-article-player__library-list" data-wp-bind--hidden="!state.isQueueTab">
 									<p class="spoken-article-player__library-empty" data-wp-bind--hidden="state.hasQueueItems">
@@ -301,6 +313,7 @@ class Player_Block {
 										</div>
 									</template>
 								</div>
+								<?php endif; ?>
 
 								<!-- Saved tab (uses prc-user-accounts/saved-articles store) -->
 								<div

@@ -107,11 +107,19 @@ class Player_Add_To_Queue_Block {
 			return '';
 		}
 
+		// The player block sets queueEnabled when it renders, usually later in
+		// the footer. Only seed the default so this block never overrides it.
+		$player_state = wp_interactivity_state( 'prc-spoken-article/player' );
+		if ( ! array_key_exists( 'queueEnabled', $player_state ) ) {
+			wp_interactivity_state( 'prc-spoken-article/player', array( 'queueEnabled' => true ) );
+		}
+
 		$tags = new WP_HTML_Tag_Processor( $content );
 		if ( $tags->next_tag( 'button' ) ) {
 			$tags->set_attribute( 'data-wp-interactive', wp_json_encode( array( 'namespace' => 'prc-spoken-article/player' ) ) );
 			$tags->set_attribute( 'data-wp-context', wp_json_encode( $context ) );
 			$tags->set_attribute( 'data-wp-on--click', 'actions.addToQueue' );
+			$tags->set_attribute( 'data-wp-bind--hidden', '!state.queueEnabled' );
 		}
 		if ( $tags->next_tag( array( 'class_name' => 'player-add-to-queue__toast' ) ) ) {
 			$tags->set_attribute( 'data-wp-bind--hidden', '!state.queueAddedToast' );

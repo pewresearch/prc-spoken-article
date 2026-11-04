@@ -6,6 +6,12 @@
   "title": "Spoken Article",
   "category": "media",
   "description": "Persistent audio player dialog — place in footer template for cross-page playback",
+  "attributes": {
+    "enableQueue": {
+      "type": "boolean",
+      "default": true
+    }
+  },
   "supports": {
     "anchor": true,
     "html": false,
@@ -26,5 +32,5 @@
   "editorScript": "file:./index.js",
   "editorStyle": "file:./index.css",
   "style": "file:./style-index.css",
-  "viewModule": "file:./view.js"
+  "viewScriptModule": "file:./view.js"
 }

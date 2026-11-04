@@ -1,31 +1,49 @@
+@mixin duration-label {
+	content: "· " attr(data-spoken-article-duration);
+	display: inline;
+	width: auto;
+	height: auto;
+	min-width: 0;
+	min-height: 0;
+	flex-basis: auto;
+	background: none;
+	mask-image: none;
+	-webkit-mask-image: none;
+	white-space: nowrap;
+}
+
 .wp-block-prc-spoken-article-player-trigger {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	background: var(--wp--preset--color--ui-white);
-	color: var(--wp--preset--color--ui-gray-dark);
-	font-size: 14px;
-	font-weight: 500;
-	line-height: 1.4;
-	cursor: pointer;
-	transition: color 0.15s;
-
-	&:hover,
-	&:focus-visible {
-		color: #000;
-	}
-
-	&:focus-visible {
-		outline: 2px solid #0073aa;
-		outline-offset: 2px;
-	}
-
-	svg {
-		fill: currentColor;
-		flex-shrink: 0;
-	}
-
-	.spoken-article-trigger__duration {
+	.wp-block-button:not(.has-icon)
+		.wp-block-button__link[data-spoken-article-duration]::after {
+		content: " · " attr(data-spoken-article-duration);
 		white-space: nowrap;
+	}
+
+	// The core/button has-icon style draws its icon with ::before (left) or
+	// ::after (right) on the same link, so the runtime takes the free one.
+	.wp-block-button.has-icon[data-icon-position="left"]
+		.wp-block-button__link[data-spoken-article-duration]::after {
+		@include duration-label;
+	}
+
+	.wp-block-button.has-icon[data-icon-position="right"]
+		.wp-block-button__link[data-spoken-article-duration] {
+		&::before {
+			@include duration-label;
+			order: 1;
+		}
+
+		&::after {
+			order: 2;
+		}
+	}
+
+	.wp-block-prc-spoken-article-player-trigger__target {
+		cursor: pointer;
+
+		&:focus-visible {
+			outline: 2px solid #0073aa;
+			outline-offset: 2px;
+		}
 	}
 }
